@@ -37,6 +37,7 @@ RUN cobc -free -c -I copybooks fetch-item.cbl
 RUN cobc -free -c -I copybooks ref-detect.cbl
 RUN cobc -free -c -I copybooks page-create.cbl
 RUN cobc -free -c -I copybooks form-create.cbl
+RUN cobc -free -c -I copybooks page-delete.cbl
 
 # Compile and link main with all modules
 RUN cobc -free -x -I copybooks -o cobol-admin \
@@ -60,6 +61,7 @@ RUN cobc -free -x -I copybooks -o cobol-admin \
     ref-detect.o \
     page-create.o \
     form-create.o \
+    page-delete.o \
     helpers.o \
     cJSON.o \
     -lcurl

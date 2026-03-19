@@ -171,6 +171,12 @@
                WS-ROUTE-ID WS-STATIC-PATH
            END-CALL
 
+      *> Handle POST on delete: delete and redirect to list
+           IF ROUTE-DELETE AND
+               FUNCTION TRIM(WS-REQUEST-METHOD) = "POST"
+               PERFORM DELETE-AND-REDIRECT
+           ELSE
+
       *> Handle POST on create: submit form and redirect
            IF ROUTE-CREATE AND
                FUNCTION TRIM(WS-REQUEST-METHOD) = "POST"
@@ -314,6 +320,10 @@
                            WS-ROUTE-RESOURCE
                            WS-RESOURCE-TABLE
                            WS-MATCHED-RES-IDX
+                   WHEN ROUTE-DELETE
+                       CALL "PAGE-DELETE" USING
+                           WS-PAGE-CONTENT WS-PAGE-LEN
+                           WS-ROUTE-RESOURCE WS-ROUTE-ID
                    WHEN ROUTE-NOT-FOUND
                        CALL "PAGE-404" USING
                            WS-PAGE-CONTENT WS-PAGE-LEN
@@ -335,11 +345,58 @@
            END-IF
            END-IF
            END-IF
+           END-IF
            .
 
       *>
       *> SEND-STATIC-RESPONSE: Send static file with content-type
       *>
+      *>
+      *> DELETE-AND-REDIRECT: Delete resource and redirect to list
+      *>
+       DELETE-AND-REDIRECT.
+      *> Build DELETE URL
+           MOVE LOW-VALUE TO RESPONSE-BUFFER
+           STRING
+               FUNCTION TRIM(API-BASE-URL) DELIMITED BY SIZE
+               "/" DELIMITED BY SIZE
+               WS-ROUTE-RESOURCE DELIMITED BY SPACE
+               "/" DELIMITED BY SIZE
+               WS-ROUTE-ID DELIMITED BY SPACE
+               LOW-VALUE DELIMITED BY SIZE
+               INTO RESPONSE-BUFFER
+           END-STRING
+
+           CALL "cobol_http_delete" USING
+               BY REFERENCE RESPONSE-BUFFER
+               RETURNING WS-SUBMIT-STATUS
+           END-CALL
+
+           PERFORM SEND-LIST-REDIRECT
+           .
+
+      *>
+      *> SEND-LIST-REDIRECT: Redirect to list page
+      *>
+       SEND-LIST-REDIRECT.
+           MOVE LOW-VALUE TO RESPONSE-BUFFER
+           STRING
+               "HTTP/1.1 303 See Other" DELIMITED BY SIZE
+               WS-CRLF DELIMITED BY SIZE
+               "Location: /list/" DELIMITED BY SIZE
+               WS-ROUTE-RESOURCE DELIMITED BY SPACE
+               WS-CRLF DELIMITED BY SIZE
+               "Connection: close" DELIMITED BY SIZE
+               WS-CRLF DELIMITED BY SIZE
+               WS-CRLF DELIMITED BY SIZE
+               INTO RESPONSE-BUFFER
+           END-STRING
+           MOVE 0 TO RESPONSE-LEN
+           INSPECT RESPONSE-BUFFER TALLYING RESPONSE-LEN
+               FOR CHARACTERS BEFORE INITIAL LOW-VALUE
+           PERFORM SEND-BUFFER
+           .
+
       *>
       *> FIND-RESOURCE-IDX: Find WS-MATCHED-RES-IDX for route
       *>

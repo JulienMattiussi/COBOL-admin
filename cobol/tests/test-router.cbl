@@ -44,6 +44,8 @@ procedure division.
     perform test-show-invalid.
     perform test-create-route.
     perform test-create-invalid.
+    perform test-delete-route.
+    perform test-delete-invalid.
     goback.
 
 test-home-route section.
@@ -159,6 +161,34 @@ test-create-invalid section.
     move spaces to ws-request-path
     move "/create/bogus" to ws-request-path
     move 13 to ws-path-len
+    call "ROUTER" using
+        ws-request-path ws-path-len
+        ws-route-type ws-route-resource
+        ws-resource-table
+        ws-page ws-per-page
+        ws-route-id ws-static-path
+    end-call
+    call "assert-equals" using "NOTFOUND", ws-route-type(1:8).
+
+test-delete-route section.
+    move spaces to ws-request-path
+    move "/delete/posts/7" to ws-request-path
+    move 15 to ws-path-len
+    call "ROUTER" using
+        ws-request-path ws-path-len
+        ws-route-type ws-route-resource
+        ws-resource-table
+        ws-page ws-per-page
+        ws-route-id ws-static-path
+    end-call
+    call "assert-equals" using "DELETE", ws-route-type(1:6).
+    call "assert-equals" using "posts", ws-route-resource(1:5).
+    call "assert-equals" using "7", ws-route-id(1:1).
+
+test-delete-invalid section.
+    move spaces to ws-request-path
+    move "/delete/bogus/1" to ws-request-path
+    move 15 to ws-path-len
     call "ROUTER" using
         ws-request-path ws-path-len
         ws-route-type ws-route-resource

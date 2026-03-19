@@ -186,6 +186,38 @@
                        END-IF
                    END-IF
                END-IF
+      *> Match /delete/{resource}/{id}
+               IF WS-CLEAN-LEN > 8
+                   IF WS-CLEAN-PATH(1:8) = "/delete/"
+                       MOVE 0 TO WS-SLASH-POS
+                       PERFORM VARYING WS-SCAN FROM 9 BY 1
+                           UNTIL WS-SCAN > WS-CLEAN-LEN
+                           IF WS-CLEAN-PATH(WS-SCAN:1) = "/"
+                               MOVE WS-SCAN TO WS-SLASH-POS
+                               EXIT PERFORM
+                           END-IF
+                       END-PERFORM
+                       IF WS-SLASH-POS > 9
+                           MOVE WS-CLEAN-PATH(
+                               9:WS-SLASH-POS - 9)
+                               TO LS-ROUTE-RESOURCE
+                           MOVE WS-CLEAN-PATH(
+                               WS-SLASH-POS + 1:
+                               WS-CLEAN-LEN - WS-SLASH-POS)
+                               TO LS-ROUTE-ID
+                           PERFORM VARYING WS-IDX FROM 1 BY 1
+                               UNTIL WS-IDX >
+                                   LS-RESOURCE-COUNT
+                               IF LS-RES-NAME(WS-IDX)
+                                   = LS-ROUTE-RESOURCE
+                                   MOVE "DELETE"
+                                       TO LS-ROUTE-TYPE
+                                   EXIT PERFORM
+                               END-IF
+                           END-PERFORM
+                       END-IF
+                   END-IF
+               END-IF
            END-IF
 
            GOBACK.

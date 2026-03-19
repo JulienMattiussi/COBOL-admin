@@ -90,6 +90,30 @@ int cobol_http_put(const char *url, const char *json_file) {
     return 0;
 }
 
+int cobol_http_delete(const char *url) {
+    CURL *curl = curl_easy_init();
+    if (!curl) return -1;
+
+    curl_easy_setopt(curl, CURLOPT_URL, url);
+    curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
+
+    FILE *devnull = fopen("/dev/null", "w");
+    if (devnull) curl_easy_setopt(curl, CURLOPT_WRITEDATA, devnull);
+
+    CURLcode res = curl_easy_perform(curl);
+
+    long http_code = 0;
+    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+
+    if (devnull) fclose(devnull);
+    curl_easy_cleanup(curl);
+
+    if (res != CURLE_OK) return -3;
+    if (http_code >= 400) return (int)http_code;
+    return 0;
+}
+
 int cobol_http_post(const char *url, const char *json_file,
                     const char *response_file) {
     /* Read JSON body from file */

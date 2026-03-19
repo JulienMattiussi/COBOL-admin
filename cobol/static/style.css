@@ -192,6 +192,19 @@ main p a {
   background: #34495e;
 }
 
+.btn-danger {
+  background: #c0392b;
+}
+
+.btn-danger:hover {
+  background: #a93226;
+}
+
+/* Delete confirmation */
+.delete-confirm p {
+  margin: 16px 0;
+}
+
 /* Edit form */
 .edit-form {
   max-width: 600px;

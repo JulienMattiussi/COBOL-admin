@@ -147,7 +147,14 @@
                LS-RESOURCE-NAME DELIMITED BY SPACE
                "/" DELIMITED BY SIZE
                LS-RESOURCE-ID DELIMITED BY SPACE
-               "'>Cancel</a></div></form>"
+               "'>Cancel</a>" DELIMITED BY SIZE
+               "<a class='btn btn-danger' href='/delete/"
+                   DELIMITED BY SIZE
+               LS-RESOURCE-NAME DELIMITED BY SPACE
+               "/" DELIMITED BY SIZE
+               LS-RESOURCE-ID DELIMITED BY SPACE
+               "'>Delete</a>" DELIMITED BY SIZE
+               "</div></form>"
                    DELIMITED BY SIZE
                INTO LS-HTML-BODY WITH POINTER LS-HTML-LEN
            END-STRING

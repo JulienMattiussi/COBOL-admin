@@ -20,6 +20,7 @@ cobc -free -c -I copybooks fetch-item.cbl
 cobc -free -c -I copybooks ref-detect.cbl
 cobc -free -c -I copybooks page-create.cbl
 cobc -free -c -I copybooks form-create.cbl
+cobc -free -c -I copybooks page-delete.cbl
 
 echo "=== Running tests ==="
 cobc -x -free -debug -I copybooks \
@@ -48,6 +49,7 @@ cobc -x -free -debug -I copybooks \
     ref-detect.o \
     page-create.o \
     form-create.o \
+    page-delete.o \
     helpers.o \
     cJSON.o \
     -lcurl \
