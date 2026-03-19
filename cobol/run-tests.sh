@@ -27,6 +27,7 @@ cobc -x -free -debug -I copybooks \
     tests/test-pages.cbl \
     tests/test-html-escape.cbl \
     tests/test-shell-sanitize.cbl \
+    tests/test-ref-detect.cbl \
     template-engine.o \
     http-parse.o \
     router.o \
@@ -46,4 +47,4 @@ cobc -x -free -debug -I copybooks \
     helpers.o \
     cJSON.o \
     -lcurl \
-    --job='test-http-parse test-router test-pages test-html-escape test-shell-sanitize'
+    --job='test-http-parse test-router test-pages test-html-escape test-shell-sanitize test-ref-detect'

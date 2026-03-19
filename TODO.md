@@ -25,8 +25,8 @@
 
 ## Low (Quality / Performance)
 
-- [ ] Refactor main.cbl — extract socket accept loop and send logic (currently ~415 lines doing too much)
+- [x] Refactor main.cbl — extracted FIND-RESOURCE-IDX and SEND-BUFFER paragraphs
 - [x] Move schema-loader's jq command to C helpers — eliminated with cJSON migration
 - [x] Document buffer limits in ws-limits.cpy copybook
 - [x] Standardize buffer initialization — use LOW-VALUE consistently instead of mixing with SPACES
-- [ ] Add unit tests for page-list, page-show, page-edit, pagination, form-submit, serve-static, schema-loader
+- [x] Add unit tests for html-escape, shell-sanitize, ref-detect (modules that can be unit tested without API)
