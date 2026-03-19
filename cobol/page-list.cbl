@@ -26,6 +26,10 @@
        01 WS-PAGE-IDX          PIC 999 VALUE 0.
        01 WS-PAGE-IDX-STR      PIC ZZ9.
        01 WS-TOTAL-STR         PIC ZZZZZ9.
+       01 WS-WIN-START         PIC 999 VALUE 0.
+       01 WS-WIN-END           PIC 999 VALUE 0.
+       01 WS-PREV-PAGE         PIC 999 VALUE 0.
+       01 WS-NEXT-PAGE         PIC 999 VALUE 0.
        01 WS-JQ-FIELDS         PIC X(512).
        01 WS-JQ-PTR            PIC 9(4) COMP-5 VALUE 0.
 
@@ -317,7 +321,11 @@
            END-STRING
            .
 
-      *> Pagination nav
+      *> Pagination: handles all cases
+      *> <=5 pages: 1 2 3 4 5
+      *> Near start: < 1 2 3 4 5 ... last >
+      *> Middle: < 1 ... 5 6 7 8 9 ... last >
+      *> Near end: < 1 ... 16 17 18 19 20 >
        BUILD-PAGINATION.
            IF LS-TOTAL-COUNT = 0
                GOBACK
@@ -331,64 +339,223 @@
                GOBACK
            END-IF
 
+           MOVE LS-PER-PAGE TO WS-PERPAGE-STR
+
+      *> Compute sliding window of 5 pages
+           COMPUTE WS-WIN-START = LS-PAGE - 2
+           IF WS-WIN-START < 1
+               MOVE 1 TO WS-WIN-START
+           END-IF
+           COMPUTE WS-WIN-END = WS-WIN-START + 4
+           IF WS-WIN-END > WS-TOTAL-PAGES
+               MOVE WS-TOTAL-PAGES TO WS-WIN-END
+               COMPUTE WS-WIN-START = WS-WIN-END - 4
+               IF WS-WIN-START < 1
+                   MOVE 1 TO WS-WIN-START
+               END-IF
+           END-IF
+
            STRING
                "<div style='margin-top:16px;"
                    DELIMITED BY SIZE
-               "display:flex;gap:4px;'>"
+               "display:flex;gap:4px;"
+                   DELIMITED BY SIZE
+               "align-items:center;'>"
                    DELIMITED BY SIZE
                INTO LS-HTML-BODY WITH POINTER LS-HTML-LEN
            END-STRING
 
-           MOVE LS-PER-PAGE TO WS-PERPAGE-STR
+      *> Previous button
+           IF LS-PAGE > 1
+               COMPUTE WS-PREV-PAGE = LS-PAGE - 1
+               MOVE WS-PREV-PAGE TO WS-PAGE-IDX-STR
+               PERFORM WRITE-NAV-LINK-PREV
+           ELSE
+               PERFORM WRITE-NAV-DISABLED-PREV
+           END-IF
 
-           PERFORM VARYING WS-PAGE-IDX FROM 1 BY 1
-               UNTIL WS-PAGE-IDX > WS-TOTAL-PAGES
+      *> First page + left ellipsis if window doesn't start at 1
+           IF WS-WIN-START > 1
+               MOVE 1 TO WS-PAGE-IDX
+               MOVE WS-PAGE-IDX TO WS-PAGE-IDX-STR
+               PERFORM WRITE-PAGE-LINK
+               IF WS-WIN-START > 2
+                   PERFORM WRITE-ELLIPSIS
+               END-IF
+           END-IF
+
+      *> Page number buttons (window)
+           PERFORM VARYING WS-PAGE-IDX
+               FROM WS-WIN-START BY 1
+               UNTIL WS-PAGE-IDX > WS-WIN-END
                MOVE WS-PAGE-IDX TO WS-PAGE-IDX-STR
                IF WS-PAGE-IDX = LS-PAGE
-                   STRING
-                       "<span style='padding:6px 12px;"
-                           DELIMITED BY SIZE
-                       "background:#2c3e50;color:#fff;"
-                           DELIMITED BY SIZE
-                       "border-radius:4px;'>"
-                           DELIMITED BY SIZE
-                       FUNCTION TRIM(WS-PAGE-IDX-STR)
-                       DELIMITED BY SIZE
-                       "</span>" DELIMITED BY SIZE
-                       INTO LS-HTML-BODY
-                           WITH POINTER LS-HTML-LEN
-                   END-STRING
+                   PERFORM WRITE-CURRENT-PAGE
                ELSE
-                   STRING
-                       "<a href='/list/" DELIMITED BY SIZE
-                       LS-RESOURCE-NAME DELIMITED BY SPACE
-                       "?page=" DELIMITED BY SIZE
-                       FUNCTION TRIM(WS-PAGE-IDX-STR)
-                       DELIMITED BY SIZE
-                       "&perPage=" DELIMITED BY SIZE
-                       FUNCTION TRIM(WS-PERPAGE-STR)
-                       DELIMITED BY SIZE
-                       "' style='padding:6px 12px;"
-                           DELIMITED BY SIZE
-                       "border:1px solid #ddd;"
-                           DELIMITED BY SIZE
-                       "border-radius:4px;"
-                           DELIMITED BY SIZE
-                       "text-decoration:none;"
-                           DELIMITED BY SIZE
-                       "color:#2c3e50;'>"
-                           DELIMITED BY SIZE
-                       FUNCTION TRIM(WS-PAGE-IDX-STR)
-                       DELIMITED BY SIZE
-                       "</a>" DELIMITED BY SIZE
-                       INTO LS-HTML-BODY
-                           WITH POINTER LS-HTML-LEN
-                   END-STRING
+                   PERFORM WRITE-PAGE-LINK
                END-IF
            END-PERFORM
 
+      *> Right ellipsis + last page if window doesn't reach end
+           IF WS-WIN-END < WS-TOTAL-PAGES
+               IF WS-WIN-END < WS-TOTAL-PAGES - 1
+                   PERFORM WRITE-ELLIPSIS
+               END-IF
+               MOVE WS-TOTAL-PAGES TO WS-PAGE-IDX
+               MOVE WS-PAGE-IDX TO WS-PAGE-IDX-STR
+               PERFORM WRITE-PAGE-LINK
+           END-IF
+
+      *> Next button
+           IF LS-PAGE < WS-TOTAL-PAGES
+               COMPUTE WS-NEXT-PAGE = LS-PAGE + 1
+               MOVE WS-NEXT-PAGE TO WS-PAGE-IDX-STR
+               PERFORM WRITE-NAV-LINK-NEXT
+           ELSE
+               PERFORM WRITE-NAV-DISABLED-NEXT
+           END-IF
+
            STRING "</div>" DELIMITED BY SIZE
                INTO LS-HTML-BODY WITH POINTER LS-HTML-LEN
+           END-STRING
+           .
+
+       WRITE-CURRENT-PAGE.
+           STRING
+               "<span style='padding:6px 12px;"
+                   DELIMITED BY SIZE
+               "background:#2c3e50;color:#fff;"
+                   DELIMITED BY SIZE
+               "border-radius:4px;'>"
+                   DELIMITED BY SIZE
+               FUNCTION TRIM(WS-PAGE-IDX-STR)
+                   DELIMITED BY SIZE
+               "</span>" DELIMITED BY SIZE
+               INTO LS-HTML-BODY
+                   WITH POINTER LS-HTML-LEN
+           END-STRING
+           .
+
+       WRITE-ELLIPSIS.
+           STRING
+               "<span style='padding:6px 4px;"
+                   DELIMITED BY SIZE
+               "color:#888;'>...</span>"
+                   DELIMITED BY SIZE
+               INTO LS-HTML-BODY
+                   WITH POINTER LS-HTML-LEN
+           END-STRING
+           .
+
+       WRITE-NAV-LINK-PREV.
+           STRING
+               "<a href='/list/" DELIMITED BY SIZE
+               LS-RESOURCE-NAME DELIMITED BY SPACE
+               "?page=" DELIMITED BY SIZE
+               FUNCTION TRIM(WS-PAGE-IDX-STR)
+                   DELIMITED BY SIZE
+               "&perPage=" DELIMITED BY SIZE
+               FUNCTION TRIM(WS-PERPAGE-STR)
+                   DELIMITED BY SIZE
+               "' style='padding:6px 12px;"
+                   DELIMITED BY SIZE
+               "border:1px solid #ddd;"
+                   DELIMITED BY SIZE
+               "border-radius:4px;"
+                   DELIMITED BY SIZE
+               "text-decoration:none;"
+                   DELIMITED BY SIZE
+               "color:#2c3e50;'>"
+                   DELIMITED BY SIZE
+               "&lt;</a>" DELIMITED BY SIZE
+               INTO LS-HTML-BODY
+                   WITH POINTER LS-HTML-LEN
+           END-STRING
+           .
+
+       WRITE-NAV-DISABLED-PREV.
+           STRING
+               "<span style='padding:6px 12px;"
+                   DELIMITED BY SIZE
+               "border:1px solid #eee;"
+                   DELIMITED BY SIZE
+               "border-radius:4px;"
+                   DELIMITED BY SIZE
+               "color:#ccc;'>"
+                   DELIMITED BY SIZE
+               "&lt;</span>" DELIMITED BY SIZE
+               INTO LS-HTML-BODY
+                   WITH POINTER LS-HTML-LEN
+           END-STRING
+           .
+
+       WRITE-NAV-LINK-NEXT.
+           STRING
+               "<a href='/list/" DELIMITED BY SIZE
+               LS-RESOURCE-NAME DELIMITED BY SPACE
+               "?page=" DELIMITED BY SIZE
+               FUNCTION TRIM(WS-PAGE-IDX-STR)
+                   DELIMITED BY SIZE
+               "&perPage=" DELIMITED BY SIZE
+               FUNCTION TRIM(WS-PERPAGE-STR)
+                   DELIMITED BY SIZE
+               "' style='padding:6px 12px;"
+                   DELIMITED BY SIZE
+               "border:1px solid #ddd;"
+                   DELIMITED BY SIZE
+               "border-radius:4px;"
+                   DELIMITED BY SIZE
+               "text-decoration:none;"
+                   DELIMITED BY SIZE
+               "color:#2c3e50;'>"
+                   DELIMITED BY SIZE
+               "&gt;</a>" DELIMITED BY SIZE
+               INTO LS-HTML-BODY
+                   WITH POINTER LS-HTML-LEN
+           END-STRING
+           .
+
+       WRITE-NAV-DISABLED-NEXT.
+           STRING
+               "<span style='padding:6px 12px;"
+                   DELIMITED BY SIZE
+               "border:1px solid #eee;"
+                   DELIMITED BY SIZE
+               "border-radius:4px;"
+                   DELIMITED BY SIZE
+               "color:#ccc;'>"
+                   DELIMITED BY SIZE
+               "&gt;</span>" DELIMITED BY SIZE
+               INTO LS-HTML-BODY
+                   WITH POINTER LS-HTML-LEN
+           END-STRING
+           .
+
+       WRITE-PAGE-LINK.
+           STRING
+               "<a href='/list/" DELIMITED BY SIZE
+               LS-RESOURCE-NAME DELIMITED BY SPACE
+               "?page=" DELIMITED BY SIZE
+               FUNCTION TRIM(WS-PAGE-IDX-STR)
+                   DELIMITED BY SIZE
+               "&perPage=" DELIMITED BY SIZE
+               FUNCTION TRIM(WS-PERPAGE-STR)
+                   DELIMITED BY SIZE
+               "' style='padding:6px 12px;"
+                   DELIMITED BY SIZE
+               "border:1px solid #ddd;"
+                   DELIMITED BY SIZE
+               "border-radius:4px;"
+                   DELIMITED BY SIZE
+               "text-decoration:none;"
+                   DELIMITED BY SIZE
+               "color:#2c3e50;'>"
+                   DELIMITED BY SIZE
+               FUNCTION TRIM(WS-PAGE-IDX-STR)
+                   DELIMITED BY SIZE
+               "</a>" DELIMITED BY SIZE
+               INTO LS-HTML-BODY
+                   WITH POINTER LS-HTML-LEN
            END-STRING
            .
 
