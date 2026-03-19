@@ -4,7 +4,10 @@
 
        DATA DIVISION.
        WORKING-STORAGE SECTION.
-       01 WS-CMD               PIC X(1024).
+       01 WS-URL               PIC X(512).
+       01 WS-URL-Z             PIC X(512).
+       01 WS-C-RESULT          PIC S9(9) COMP-5 VALUE 0.
+       01 WS-C-TOTAL           PIC S9(9) COMP-5 VALUE 0.
        01 WS-FOPEN-MODE        PIC X(4) VALUE Z"r".
        01 WS-FILE-PTR          USAGE POINTER.
        01 WS-FGETS-PTR         USAGE POINTER.
@@ -13,9 +16,6 @@
        01 WS-FIELD-IDX         PIC 99 VALUE 0.
        01 WS-DATA-FILE         PIC X(256)
            VALUE Z"/tmp/listdata.tsv".
-       01 WS-TOTAL-FILE        PIC X(256)
-           VALUE Z"/tmp/total.txt".
-       01 WS-TOTAL-LINE        PIC X(20).
        01 WS-CELL-START        PIC 9(4) COMP-5 VALUE 0.
        01 WS-CELL-END          PIC 9(4) COMP-5 VALUE 0.
        01 WS-SCAN              PIC 9(4) COMP-5 VALUE 0.
@@ -28,8 +28,15 @@
        01 WS-ID-COL            PIC 99 VALUE 0.
        01 WS-COL-IDX           PIC 99 VALUE 0.
        01 WS-ROW-ID            PIC X(10).
-       01 WS-JQ-FIELDS         PIC X(512).
-       01 WS-JQ-PTR            PIC 9(4) COMP-5 VALUE 0.
+       01 WS-FIELDS-CSV        PIC X(512).
+       01 WS-FIELDS-PTR        PIC 9(4) COMP-5 VALUE 0.
+       01 WS-RESP-FILE         PIC X(256)
+           VALUE Z"/tmp/listresponse.json".
+       01 WS-HEADER-FILE       PIC X(256)
+           VALUE Z"/tmp/headers.txt".
+       01 WS-TSV-FILE-Z        PIC X(256)
+           VALUE Z"/tmp/listdata.tsv".
+       01 WS-ARRAY-MODE        PIC X(8) VALUE Z"array".
 
       *> HTML escaping
        01 WS-ESC-INPUT         PIC X(2048).
@@ -74,104 +81,73 @@
            PERFORM BUILD-PAGE
            GOBACK.
 
-      *> Fetch paginated data from API using curl + jq
+      *> Fetch paginated data from API using C helpers
        FETCH-DATA.
            MOVE LS-PAGE TO WS-PAGE-STR
            MOVE LS-PER-PAGE TO WS-PERPAGE-STR
 
-      *> Build jq field selector: [.field1, .field2, ...]
-           MOVE LOW-VALUE TO WS-JQ-FIELDS
-           MOVE 1 TO WS-JQ-PTR
-           STRING "[" DELIMITED BY SIZE
-               INTO WS-JQ-FIELDS WITH POINTER WS-JQ-PTR
-           END-STRING
-           PERFORM VARYING WS-FIELD-IDX FROM 1 BY 1
-               UNTIL WS-FIELD-IDX > LS-RES-FIELD-COUNT(LS-RES-IDX)
-               IF WS-FIELD-IDX > 1
-                   STRING "," DELIMITED BY SIZE
-                       INTO WS-JQ-FIELDS
-                       WITH POINTER WS-JQ-PTR
-                   END-STRING
-               END-IF
-               STRING
-                   "." DELIMITED BY SIZE
-                   LS-RES-FIELD-NAME(LS-RES-IDX, WS-FIELD-IDX)
-                       DELIMITED BY SPACE
-                   INTO WS-JQ-FIELDS
-                       WITH POINTER WS-JQ-PTR
-               END-STRING
-           END-PERFORM
-           STRING "]" DELIMITED BY SIZE
-               INTO WS-JQ-FIELDS WITH POINTER WS-JQ-PTR
-           END-STRING
-
-      *> curl API with pagination, pipe through jq to get TSV
-           MOVE LOW-VALUE TO WS-CMD
+      *> Build URL with pagination params
+           MOVE LOW-VALUE TO WS-URL-Z
            STRING
-               "curl -sD /tmp/headers.txt '"
-                   DELIMITED BY SIZE
-               LS-API-URL DELIMITED BY SPACE
+               FUNCTION TRIM(LS-API-URL) DELIMITED BY SIZE
                "/" DELIMITED BY SIZE
                LS-RESOURCE-NAME DELIMITED BY SPACE
                "?page=" DELIMITED BY SIZE
                FUNCTION TRIM(WS-PAGE-STR)
-                       DELIMITED BY SIZE
+                   DELIMITED BY SIZE
                "&perPage=" DELIMITED BY SIZE
                FUNCTION TRIM(WS-PERPAGE-STR)
-                       DELIMITED BY SIZE
-               "' | jq -r '.[] | "
                    DELIMITED BY SIZE
-               WS-JQ-FIELDS DELIMITED BY LOW-VALUE
-               " | map(if type==""array"" then"
-                   DELIMITED BY SIZE
-               " map(tostring)|join("", "")"
-                   DELIMITED BY SIZE
-               " else tostring end)"
-                   DELIMITED BY SIZE
-               " | @tsv' > /tmp/listdata.tsv"
-                   DELIMITED BY SIZE
-               INTO WS-CMD
+               LOW-VALUE DELIMITED BY SIZE
+               INTO WS-URL-Z
            END-STRING
-           CALL "SYSTEM" USING FUNCTION TRIM(WS-CMD)
+
+      *> HTTP GET
+           CALL "cobol_http_get" USING
+               BY REFERENCE WS-URL-Z
+               BY REFERENCE WS-RESP-FILE
+               BY REFERENCE WS-HEADER-FILE
+               RETURNING WS-C-RESULT
            END-CALL
 
-      *> Extract X-Total-Count from response headers
-           MOVE LOW-VALUE TO WS-CMD
-           STRING
-               "grep -i 'x-total-count' /tmp/headers.txt"
-               " | tr -d '\r\n' | cut -d' ' -f2"
-               " > /tmp/total.txt"
-               DELIMITED BY SIZE
-               INTO WS-CMD
-           END-STRING
-           CALL "SYSTEM" USING FUNCTION TRIM(WS-CMD)
+      *> Extract total count from headers
+           CALL "cobol_extract_total" USING
+               BY REFERENCE WS-HEADER-FILE
+               BY REFERENCE WS-C-TOTAL
+               RETURNING WS-C-RESULT
            END-CALL
+           MOVE WS-C-TOTAL TO LS-TOTAL-COUNT
 
-           CALL "fopen" USING WS-TOTAL-FILE WS-FOPEN-MODE
-               RETURNING WS-FILE-PTR
-           END-CALL
-           IF WS-FILE-PTR NOT = NULL
-               MOVE SPACES TO WS-TOTAL-LINE
-               CALL "fgets" USING
-                   BY REFERENCE WS-TOTAL-LINE
-                   BY VALUE 20
-                   BY VALUE WS-FILE-PTR
-                   RETURNING WS-FGETS-PTR
-               END-CALL
-               CALL "fclose" USING BY VALUE WS-FILE-PTR
-               END-CALL
-               INSPECT WS-TOTAL-LINE
-                   REPLACING ALL X"0A" BY SPACE
-               INSPECT WS-TOTAL-LINE
-                   REPLACING ALL X"0D" BY SPACE
-               INSPECT WS-TOTAL-LINE
-                   REPLACING ALL LOW-VALUE BY SPACE
-               IF FUNCTION TRIM(WS-TOTAL-LINE TRAILING)
-                   NOT = SPACES
-                   COMPUTE LS-TOTAL-COUNT = FUNCTION NUMVAL(
-                       FUNCTION TRIM(WS-TOTAL-LINE TRAILING))
+      *> Build CSV field list for JSON-to-TSV conversion
+           MOVE LOW-VALUE TO WS-FIELDS-CSV
+           MOVE 1 TO WS-FIELDS-PTR
+           PERFORM VARYING WS-FIELD-IDX FROM 1 BY 1
+               UNTIL WS-FIELD-IDX >
+                   LS-RES-FIELD-COUNT(LS-RES-IDX)
+               IF WS-FIELD-IDX > 1
+                   STRING "," DELIMITED BY SIZE
+                       INTO WS-FIELDS-CSV
+                       WITH POINTER WS-FIELDS-PTR
+                   END-STRING
                END-IF
-           END-IF
+               STRING
+                   LS-RES-FIELD-NAME(LS-RES-IDX, WS-FIELD-IDX)
+                       DELIMITED BY SPACE
+                   INTO WS-FIELDS-CSV
+                       WITH POINTER WS-FIELDS-PTR
+               END-STRING
+           END-PERFORM
+      *> Null-terminate
+           MOVE LOW-VALUE TO WS-FIELDS-CSV(WS-FIELDS-PTR:1)
+
+      *> Convert JSON array to TSV
+           CALL "cobol_json_to_tsv" USING
+               BY REFERENCE WS-RESP-FILE
+               BY REFERENCE WS-TSV-FILE-Z
+               BY REFERENCE WS-ARRAY-MODE
+               BY REFERENCE WS-FIELDS-CSV
+               RETURNING WS-C-RESULT
+           END-CALL
            .
 
       *> Build HTML: heading, perPage selector, table, pagination

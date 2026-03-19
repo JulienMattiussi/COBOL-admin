@@ -5,6 +5,7 @@
 - [x] Add path validation to serve-static.cbl (prevent path traversal like `../../etc/passwd`)
 - [x] Add HTML escaping for all values injected into HTML (XSS risk in page-list, page-show, page-edit)
 - [x] Sanitize resource names and field values before interpolating into `CALL "SYSTEM"` shell commands (command injection)
+- [x] Replace all `CALL "SYSTEM"` (curl/jq/python3) with C library calls (libcurl + cJSON) — zero shell attack surface
 
 ## High (Code Duplication / Maintainability)
 

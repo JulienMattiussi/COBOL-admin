@@ -1,10 +1,13 @@
       *> Fetches OpenAPI spec and extracts resources + fields
+      *> Uses C helpers: cobol_http_get, cobol_json_resources,
+      *>                 cobol_json_fields
        IDENTIFICATION DIVISION.
        PROGRAM-ID. SCHEMA-LOADER.
 
        DATA DIVISION.
        WORKING-STORAGE SECTION.
-       01 WS-CMD               PIC X(512).
+       01 WS-URL               PIC X(512).
+       01 WS-URL-Z             PIC X(512).
        01 WS-FOPEN-MODE        PIC X(4) VALUE Z"r".
        01 WS-FILE-PTR          USAGE POINTER.
        01 WS-FGETS-PTR         USAGE POINTER.
@@ -18,11 +21,12 @@
            VALUE Z"/tmp/resources.txt".
        01 WS-FIELDS-FILE       PIC X(256)
            VALUE Z"/tmp/fields.txt".
+       01 WS-JSON-FILE         PIC X(256)
+           VALUE Z"/tmp/openapi.json".
+       01 WS-EMPTY             PIC X(1) VALUE Z" ".
        01 WS-IDX               PIC 99 VALUE 0.
-       01 WS-RES-NAME-UPPER    PIC X(64).
-       01 WS-SANITIZE-BUF      PIC X(512).
-       01 WS-SANITIZE-LEN      PIC 9(4) COMP-5 VALUE 0.
-       01 WS-SANITIZE-OK       PIC 9 VALUE 0.
+       01 WS-RES-NAME-Z        PIC X(65).
+       01 WS-RESULT            PIC S9(9) COMP-5 VALUE 0.
 
        LINKAGE SECTION.
        01 LS-API-URL           PIC X(256).
@@ -39,19 +43,6 @@
        PROCEDURE DIVISION USING LS-API-URL LS-RESOURCE-TABLE.
 
        MAIN-LOGIC.
-      *> Validate API URL before using in shell
-           MOVE LS-API-URL TO WS-SANITIZE-BUF
-           MOVE FUNCTION LENGTH(
-               FUNCTION TRIM(LS-API-URL))
-               TO WS-SANITIZE-LEN
-           CALL "SHELL-SANITIZE" USING
-               WS-SANITIZE-BUF WS-SANITIZE-LEN WS-SANITIZE-OK
-           END-CALL
-           IF WS-SANITIZE-OK = 0
-               DISPLAY "Rejected unsafe API URL"
-               GOBACK
-           END-IF
-
            PERFORM FETCH-SCHEMA
            PERFORM PARSE-RESOURCES
            PERFORM PARSE-FIELDS
@@ -60,31 +51,41 @@
        FETCH-SCHEMA.
            DISPLAY "Fetching OpenAPI spec..."
 
-           MOVE LOW-VALUE TO WS-CMD
+      *> Build URL
+           MOVE LOW-VALUE TO WS-URL-Z
            STRING
-               "curl -s " DELIMITED BY SIZE
-               LS-API-URL DELIMITED BY SPACE
-               "/openapi.json -o /tmp/openapi.json"
-                   DELIMITED BY SIZE
-               INTO WS-CMD
+               FUNCTION TRIM(LS-API-URL) DELIMITED BY SIZE
+               "/openapi.json" DELIMITED BY SIZE
+               LOW-VALUE DELIMITED BY SIZE
+               INTO WS-URL-Z
            END-STRING
-           CALL "SYSTEM" USING FUNCTION TRIM(WS-CMD)
+
+           CALL "cobol_http_get" USING
+               BY REFERENCE WS-URL-Z
+               BY REFERENCE WS-JSON-FILE
+               BY REFERENCE WS-EMPTY
+               RETURNING WS-RESULT
            END-CALL
+
+           IF WS-RESULT NOT = 0
+               DISPLAY "Failed to fetch OpenAPI spec: "
+                   WS-RESULT
+           END-IF
            .
 
        PARSE-RESOURCES.
            DISPLAY "Extracting resources..."
 
-           MOVE LOW-VALUE TO WS-CMD
-           STRING
-               "jq -r '.paths|keys[]|split(""/"")[1]'"
-               " /tmp/openapi.json|sort -u"
-               " > /tmp/resources.txt"
-               DELIMITED BY SIZE
-               INTO WS-CMD
-           END-STRING
-           CALL "SYSTEM" USING FUNCTION TRIM(WS-CMD)
+           CALL "cobol_json_resources" USING
+               BY REFERENCE WS-JSON-FILE
+               BY REFERENCE WS-RESOURCE-FILE
+               RETURNING WS-RESULT
            END-CALL
+
+           IF WS-RESULT NOT = 0
+               DISPLAY "Failed to parse resources: " WS-RESULT
+               GOBACK
+           END-IF
 
            CALL "fopen" USING WS-RESOURCE-FILE WS-FOPEN-MODE
                RETURNING WS-FILE-PTR
@@ -131,84 +132,43 @@
            END-IF
            .
 
-      *> Extract fields for each resource from the OpenAPI schema
+      *> Extract fields for each resource
        PARSE-FIELDS.
            PERFORM VARYING WS-IDX FROM 1 BY 1
                UNTIL WS-IDX > LS-RESOURCE-COUNT
 
-      *> Derive schema name: capitalize first letter
-      *> e.g. "authors" -> "Author" (singular, capitalized)
-      *> Use jq to find the schema that matches the resource
-      *> jq outputs: name<tab>type<tab>editable(1/0)
-               MOVE LOW-VALUE TO WS-CMD
+      *> Null-terminate resource name for C call
+               MOVE LOW-VALUE TO WS-RES-NAME-Z
                STRING
-                   "jq -r --arg res ""/"
+                   FUNCTION TRIM(LS-RES-NAME(WS-IDX))
                        DELIMITED BY SIZE
-                   LS-RES-NAME(WS-IDX) DELIMITED BY SPACE
-                   """ '" DELIMITED BY SIZE
-                   ". as $root"
-                       DELIMITED BY SIZE
-                   " | (.paths[$res].get"
-                       DELIMITED BY SIZE
-                   ".responses[""200""]"
-                       DELIMITED BY SIZE
-                   ".content[""application/json""]"
-                       DELIMITED BY SIZE
-                   ".schema.items[""$ref""]"
-                       DELIMITED BY SIZE
-                   " // .paths[$res].get"
-                       DELIMITED BY SIZE
-                   ".responses[""200""]"
-                       DELIMITED BY SIZE
-                   ".content[""application/json""]"
-                       DELIMITED BY SIZE
-                   ".schema[""$ref""])"
-                       DELIMITED BY SIZE
-                   " | split(""/"")[-1] as $s"
-                       DELIMITED BY SIZE
-                   " | ($s+""Input"") as $inp"
-                       DELIMITED BY SIZE
-                   " | $root.components"
-                       DELIMITED BY SIZE
-                   ".schemas[$s].properties"
-                       DELIMITED BY SIZE
-                   " | to_entries[]"
-                       DELIMITED BY SIZE
-                   " | [.key,"
-                       DELIMITED BY SIZE
-                   " (.value.type//""string""),"
-                       DELIMITED BY SIZE
-                   " (if $root.components"
-                       DELIMITED BY SIZE
-                   ".schemas[$inp]"
-                       DELIMITED BY SIZE
-                   ".properties[.key]"
-                       DELIMITED BY SIZE
-                   " then ""1"" else ""0"" end)]"
-                       DELIMITED BY SIZE
-                   " | @tsv'"
-                       DELIMITED BY SIZE
-                   " /tmp/openapi.json"
-                       DELIMITED BY SIZE
-                   " > /tmp/fields.txt"
-                       DELIMITED BY SIZE
-                   INTO WS-CMD
+                   LOW-VALUE DELIMITED BY SIZE
+                   INTO WS-RES-NAME-Z
                END-STRING
-               CALL "SYSTEM" USING FUNCTION TRIM(WS-CMD)
+
+               CALL "cobol_json_fields" USING
+                   BY REFERENCE WS-JSON-FILE
+                   BY REFERENCE WS-RES-NAME-Z
+                   BY REFERENCE WS-FIELDS-FILE
+                   RETURNING WS-RESULT
                END-CALL
 
-               CALL "fopen" USING WS-FIELDS-FILE WS-FOPEN-MODE
-                   RETURNING WS-FILE-PTR
-               END-CALL
-               IF WS-FILE-PTR = NULL
+               IF WS-RESULT NOT = 0
                    DISPLAY "  No fields for "
                        LS-RES-NAME(WS-IDX)
                ELSE
-                   MOVE 0 TO WS-READ-DONE
-                   PERFORM READ-FIELD-LINE
-                       UNTIL WS-READ-DONE = 1
-                   CALL "fclose" USING BY VALUE WS-FILE-PTR
+                   CALL "fopen" USING
+                       WS-FIELDS-FILE WS-FOPEN-MODE
+                       RETURNING WS-FILE-PTR
                    END-CALL
+                   IF WS-FILE-PTR NOT = NULL
+                       MOVE 0 TO WS-READ-DONE
+                       PERFORM READ-FIELD-LINE
+                           UNTIL WS-READ-DONE = 1
+                       CALL "fclose" USING
+                           BY VALUE WS-FILE-PTR
+                       END-CALL
+                   END-IF
                END-IF
 
                DISPLAY "  "
@@ -252,7 +212,6 @@
                            END-IF
                        END-IF
                    END-PERFORM
-      *> Field name (before first tab)
                    IF WS-TAB1-POS > 1
                        MOVE SPACES TO LS-RES-FIELD-NAME(
                            WS-IDX,
@@ -262,7 +221,6 @@
                                WS-IDX,
                                LS-RES-FIELD-COUNT(WS-IDX))
                    END-IF
-      *> Field type (between tabs)
                    IF WS-TAB2-POS > WS-TAB1-POS
                        MOVE SPACES TO LS-RES-FIELD-TYPE(
                            WS-IDX,
@@ -274,7 +232,6 @@
                                WS-IDX,
                                LS-RES-FIELD-COUNT(WS-IDX))
                    END-IF
-      *> Editable flag (after second tab)
                    IF WS-TAB2-POS > 0
                        IF WS-LINE(WS-TAB2-POS + 1:1) = "1"
                            MOVE 1 TO LS-RES-FIELD-EDIT(

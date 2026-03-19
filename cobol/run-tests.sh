@@ -43,4 +43,7 @@ cobc -x -free -debug -I copybooks \
     shell-sanitize.o \
     fetch-item.o \
     ref-detect.o \
+    helpers.o \
+    cJSON.o \
+    -lcurl \
     --job='test-http-parse test-router test-pages test-html-escape test-shell-sanitize'

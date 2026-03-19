@@ -1,12 +1,19 @@
       *> Fetches a single item from the API as key-value TSV
-      *> Outputs to /tmp/showdata.tsv with format: key<tab>value
+      *> Uses C helper: cobol_http_get + cobol_json_to_tsv
        IDENTIFICATION DIVISION.
        PROGRAM-ID. FETCH-ITEM.
 
        DATA DIVISION.
        WORKING-STORAGE SECTION.
-       01 WS-CMD               PIC X(1024).
-       01 WS-CMD-PTR           PIC 9(4) COMP-5 VALUE 0.
+       01 WS-URL               PIC X(512).
+       01 WS-URL-Z             PIC X(512).
+       01 WS-RESP-FILE         PIC X(256)
+           VALUE Z"/tmp/response.json".
+       01 WS-TSV-FILE          PIC X(256)
+           VALUE Z"/tmp/showdata.tsv".
+       01 WS-EMPTY             PIC X(1) VALUE Z" ".
+       01 WS-MODE              PIC X(8) VALUE Z"object".
+       01 WS-RESULT            PIC S9(9) COMP-5 VALUE 0.
 
        LINKAGE SECTION.
        01 LS-API-URL           PIC X(256).
@@ -17,45 +24,45 @@
            LS-API-URL LS-RESOURCE-NAME LS-RESOURCE-ID.
 
        MAIN-LOGIC.
-           MOVE LOW-VALUE TO WS-CMD
+      *> Build URL
+           MOVE LOW-VALUE TO WS-URL
            STRING
-               "curl -s '" DELIMITED BY SIZE
                LS-API-URL DELIMITED BY SPACE
                "/" DELIMITED BY SIZE
                LS-RESOURCE-NAME DELIMITED BY SPACE
                "/" DELIMITED BY SIZE
                LS-RESOURCE-ID DELIMITED BY SPACE
-               "' | jq -r '" DELIMITED BY SIZE
-               INTO WS-CMD
+               INTO WS-URL
            END-STRING
 
-      *> Find end of string for appending
-           MOVE 0 TO WS-CMD-PTR
-           INSPECT WS-CMD TALLYING WS-CMD-PTR
-               FOR CHARACTERS BEFORE INITIAL LOW-VALUE
-           ADD 1 TO WS-CMD-PTR
-
-      *> jq: convert object to key<tab>value lines
-      *> Arrays are joined with ", "
+      *> Null-terminate
+           MOVE LOW-VALUE TO WS-URL-Z
            STRING
-               "to_entries[]"
-                   DELIMITED BY SIZE
-               " | if .value|type==""array"""
-                   DELIMITED BY SIZE
-               " then [.key,(.value|map(tostring)"
-                   DELIMITED BY SIZE
-               "|join("", ""))]"
-                   DELIMITED BY SIZE
-               " else [.key,(.value|tostring)] end"
-                   DELIMITED BY SIZE
-               " | @tsv'"
-                   DELIMITED BY SIZE
-               " > /tmp/showdata.tsv"
-                   DELIMITED BY SIZE
-               INTO WS-CMD WITH POINTER WS-CMD-PTR
+               FUNCTION TRIM(WS-URL) DELIMITED BY SIZE
+               LOW-VALUE DELIMITED BY SIZE
+               INTO WS-URL-Z
            END-STRING
 
-           CALL "SYSTEM" USING FUNCTION TRIM(WS-CMD)
+      *> HTTP GET
+           CALL "cobol_http_get" USING
+               BY REFERENCE WS-URL-Z
+               BY REFERENCE WS-RESP-FILE
+               BY REFERENCE WS-EMPTY
+               RETURNING WS-RESULT
+           END-CALL
+
+           IF WS-RESULT NOT = 0
+               DISPLAY "HTTP GET failed: " WS-RESULT
+               GOBACK
+           END-IF
+
+      *> Convert JSON to TSV
+           CALL "cobol_json_to_tsv" USING
+               BY REFERENCE WS-RESP-FILE
+               BY REFERENCE WS-TSV-FILE
+               BY REFERENCE WS-MODE
+               BY REFERENCE WS-EMPTY
+               RETURNING WS-RESULT
            END-CALL
 
            GOBACK.

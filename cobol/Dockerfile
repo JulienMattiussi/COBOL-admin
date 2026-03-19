@@ -1,15 +1,21 @@
 FROM ubuntu:24.04
 
 RUN apt-get update && \
-    apt-get install -y gnucobol4 curl jq python3 && \
+    apt-get install -y gnucobol4 libcurl4-openssl-dev && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Download gcblunit test framework
+# Download gcblunit test framework and cJSON
 ADD https://raw.githubusercontent.com/OlegKunitsyn/gcblunit/master/gcblunit.cbl gcblunit.cbl
+ADD https://raw.githubusercontent.com/DaveGamble/cJSON/master/cJSON.c cJSON.c
+ADD https://raw.githubusercontent.com/DaveGamble/cJSON/master/cJSON.h cJSON.h
 
 COPY . .
+
+# Compile C helpers
+RUN gcc -c -fPIC -o helpers.o helpers.c -I.
+RUN gcc -c -fPIC -o cJSON.o cJSON.c
 
 # Compile modules as object files
 RUN cobc -free -c -I copybooks template-engine.cbl
@@ -49,7 +55,10 @@ RUN cobc -free -x -I copybooks -o cobol-admin \
     html-escape.o \
     shell-sanitize.o \
     fetch-item.o \
-    ref-detect.o
+    ref-detect.o \
+    helpers.o \
+    cJSON.o \
+    -lcurl
 
 # Run tests at build time
 RUN chmod +x run-tests.sh && ./run-tests.sh
