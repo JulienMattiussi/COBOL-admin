@@ -25,6 +25,7 @@ RUN cobc -free -c -I copybooks page-show.cbl
 RUN cobc -free -c -I copybooks page-edit.cbl
 RUN cobc -free -c -I copybooks form-submit.cbl
 RUN cobc -free -c -I copybooks serve-static.cbl
+RUN cobc -free -c -I copybooks html-escape.cbl
 
 # Compile and link main with all modules
 RUN cobc -free -x -I copybooks -o cobol-admin \
@@ -41,7 +42,8 @@ RUN cobc -free -x -I copybooks -o cobol-admin \
     page-show.o \
     page-edit.o \
     form-submit.o \
-    serve-static.o
+    serve-static.o \
+    html-escape.o
 
 # Run tests at build time
 RUN chmod +x run-tests.sh && ./run-tests.sh

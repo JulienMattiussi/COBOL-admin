@@ -14,6 +14,7 @@ cobc -free -c -I copybooks page-show.cbl
 cobc -free -c -I copybooks page-edit.cbl
 cobc -free -c -I copybooks form-submit.cbl
 cobc -free -c -I copybooks serve-static.cbl
+cobc -free -c -I copybooks html-escape.cbl
 
 echo "=== Running tests ==="
 cobc -x -free -debug -I copybooks \
@@ -21,6 +22,7 @@ cobc -x -free -debug -I copybooks \
     tests/test-http-parse.cbl \
     tests/test-router.cbl \
     tests/test-pages.cbl \
+    tests/test-html-escape.cbl \
     template-engine.o \
     http-parse.o \
     router.o \
@@ -33,4 +35,5 @@ cobc -x -free -debug -I copybooks \
     page-edit.o \
     form-submit.o \
     serve-static.o \
-    --job='test-http-parse test-router test-pages'
+    html-escape.o \
+    --job='test-http-parse test-router test-pages test-html-escape'

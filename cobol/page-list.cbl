@@ -29,6 +29,12 @@
        01 WS-JQ-FIELDS         PIC X(512).
        01 WS-JQ-PTR            PIC 9(4) COMP-5 VALUE 0.
 
+      *> HTML escaping
+       01 WS-ESC-INPUT         PIC X(2048).
+       01 WS-ESC-INPUT-LEN     PIC 9(4) COMP-5 VALUE 0.
+       01 WS-ESC-OUTPUT        PIC X(4096).
+       01 WS-ESC-OUTPUT-LEN    PIC 9(4) COMP-5 VALUE 0.
+
       *> Reference detection per column
        01 WS-COL-REF-TABLE.
           05 WS-COL-REFS OCCURS 20 TIMES.
@@ -428,11 +434,21 @@
            END-IF
 
            IF WS-CELL-END > 0
-               STRING
-                   WS-DATA-LINE(WS-CELL-START:WS-CELL-END)
-                       DELIMITED BY SIZE
-                   INTO LS-HTML-BODY WITH POINTER LS-HTML-LEN
-               END-STRING
+               MOVE WS-DATA-LINE(WS-CELL-START:WS-CELL-END)
+                   TO WS-ESC-INPUT
+               MOVE WS-CELL-END TO WS-ESC-INPUT-LEN
+               CALL "HTML-ESCAPE" USING
+                   WS-ESC-INPUT WS-ESC-INPUT-LEN
+                   WS-ESC-OUTPUT WS-ESC-OUTPUT-LEN
+               END-CALL
+               IF WS-ESC-OUTPUT-LEN > 0
+                   STRING
+                       WS-ESC-OUTPUT(1:WS-ESC-OUTPUT-LEN)
+                           DELIMITED BY SIZE
+                       INTO LS-HTML-BODY
+                           WITH POINTER LS-HTML-LEN
+                   END-STRING
+               END-IF
            END-IF
 
       *> Close link

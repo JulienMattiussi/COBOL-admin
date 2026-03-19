@@ -18,6 +18,12 @@
        01 WS-VAL-START         PIC 9(4) COMP-5 VALUE 0.
        01 WS-VAL-LEN           PIC 9(4) COMP-5 VALUE 0.
        01 WS-LINE-LEN          PIC 9(4) COMP-5 VALUE 0.
+
+      *> HTML escaping
+       01 WS-ESC-INPUT         PIC X(2048).
+       01 WS-ESC-INPUT-LEN     PIC 9(4) COMP-5 VALUE 0.
+       01 WS-ESC-OUTPUT        PIC X(4096).
+       01 WS-ESC-OUTPUT-LEN    PIC 9(4) COMP-5 VALUE 0.
        01 WS-FNAME-LEN         PIC 99 VALUE 0.
        01 WS-MATCH-IDX         PIC 99 VALUE 0.
        01 WS-FIELD-TYPE        PIC X(16).
@@ -255,8 +261,15 @@
                INTO LS-HTML-BODY WITH POINTER LS-HTML-LEN
            END-STRING
            IF WS-VAL-LEN > 0
+               MOVE WS-LINE(WS-VAL-START:WS-VAL-LEN)
+                   TO WS-ESC-INPUT
+               MOVE WS-VAL-LEN TO WS-ESC-INPUT-LEN
+               CALL "HTML-ESCAPE" USING
+                   WS-ESC-INPUT WS-ESC-INPUT-LEN
+                   WS-ESC-OUTPUT WS-ESC-OUTPUT-LEN
+               END-CALL
                STRING
-                   WS-LINE(WS-VAL-START:WS-VAL-LEN)
+                   WS-ESC-OUTPUT(1:WS-ESC-OUTPUT-LEN)
                        DELIMITED BY SIZE
                    INTO LS-HTML-BODY WITH POINTER LS-HTML-LEN
                END-STRING

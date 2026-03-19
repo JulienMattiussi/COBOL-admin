@@ -22,6 +22,12 @@
        01 WS-VAL-LEN           PIC 9(4) COMP-5 VALUE 0.
        01 WS-LINE-LEN          PIC 9(4) COMP-5 VALUE 0.
 
+      *> HTML escaping
+       01 WS-ESC-INPUT         PIC X(2048).
+       01 WS-ESC-INPUT-LEN     PIC 9(4) COMP-5 VALUE 0.
+       01 WS-ESC-OUTPUT        PIC X(4096).
+       01 WS-ESC-OUTPUT-LEN    PIC 9(4) COMP-5 VALUE 0.
+
        LINKAGE SECTION.
        01 LS-HTML-BODY         PIC X(32768).
        01 LS-HTML-LEN          PIC 9(8) COMP-5.
@@ -265,6 +271,19 @@
                        END-IF
                    END-IF
 
+      *> Escape value for display
+                   IF WS-VAL-LEN > 0
+                       MOVE WS-LINE(WS-VAL-START:WS-VAL-LEN)
+                           TO WS-ESC-INPUT
+                       MOVE WS-VAL-LEN TO WS-ESC-INPUT-LEN
+                       CALL "HTML-ESCAPE" USING
+                           WS-ESC-INPUT WS-ESC-INPUT-LEN
+                           WS-ESC-OUTPUT WS-ESC-OUTPUT-LEN
+                       END-CALL
+                   ELSE
+                       MOVE 0 TO WS-ESC-OUTPUT-LEN
+                   END-IF
+
       *> Write value with optional link
                    IF WS-REF-CANDIDATE NOT = SPACES
                        AND WS-VAL-LEN > 0
@@ -277,17 +296,27 @@
                            WS-LINE(WS-VAL-START:WS-VAL-LEN)
                                DELIMITED BY SPACE
                            "'>" DELIMITED BY SIZE
-                           WS-LINE(WS-VAL-START:WS-VAL-LEN)
-                               DELIMITED BY SPACE
-                           "</a>" DELIMITED BY SIZE
+                           INTO LS-HTML-BODY
+                               WITH POINTER LS-HTML-LEN
+                       END-STRING
+                       IF WS-ESC-OUTPUT-LEN > 0
+                           STRING
+                               WS-ESC-OUTPUT(
+                                   1:WS-ESC-OUTPUT-LEN)
+                                   DELIMITED BY SIZE
+                               INTO LS-HTML-BODY
+                                   WITH POINTER LS-HTML-LEN
+                           END-STRING
+                       END-IF
+                       STRING "</a>" DELIMITED BY SIZE
                            INTO LS-HTML-BODY
                                WITH POINTER LS-HTML-LEN
                        END-STRING
                    ELSE
-                       IF WS-VAL-LEN > 0
+                       IF WS-ESC-OUTPUT-LEN > 0
                            STRING
-                               WS-LINE(
-                                   WS-VAL-START:WS-VAL-LEN)
+                               WS-ESC-OUTPUT(
+                                   1:WS-ESC-OUTPUT-LEN)
                                    DELIMITED BY SIZE
                                INTO LS-HTML-BODY
                                    WITH POINTER LS-HTML-LEN

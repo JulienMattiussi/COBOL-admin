@@ -3,7 +3,7 @@
 ## Critical (Security)
 
 - [x] Add path validation to serve-static.cbl (prevent path traversal like `../../etc/passwd`)
-- [ ] Add HTML escaping for all values injected into HTML (XSS risk in page-list, page-show, page-edit)
+- [x] Add HTML escaping for all values injected into HTML (XSS risk in page-list, page-show, page-edit)
 - [ ] Sanitize resource names and field values before interpolating into `CALL "SYSTEM"` shell commands (command injection)
 
 ## High (Code Duplication / Maintainability)
