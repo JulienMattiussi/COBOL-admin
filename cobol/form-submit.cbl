@@ -5,6 +5,9 @@
        DATA DIVISION.
        WORKING-STORAGE SECTION.
        01 WS-CMD               PIC X(4096).
+       01 WS-SANITIZE-BUF      PIC X(512).
+       01 WS-SANITIZE-LEN      PIC 9(4) COMP-5 VALUE 0.
+       01 WS-SANITIZE-OK       PIC 9 VALUE 0.
        01 WS-BODY-FILE         PIC X(256)
            VALUE Z"/tmp/formbody.txt".
        01 WS-JSON-FILE         PIC X(256)
@@ -25,6 +28,31 @@
            LS-FORM-BODY LS-BODY-LEN.
 
        MAIN-LOGIC.
+      *> Validate resource ID
+           MOVE LS-RESOURCE-ID TO WS-SANITIZE-BUF
+           MOVE FUNCTION LENGTH(
+               FUNCTION TRIM(LS-RESOURCE-ID))
+               TO WS-SANITIZE-LEN
+           CALL "SHELL-SANITIZE" USING
+               WS-SANITIZE-BUF WS-SANITIZE-LEN WS-SANITIZE-OK
+           END-CALL
+           IF WS-SANITIZE-OK = 0
+               DISPLAY "Rejected unsafe resource ID"
+               GOBACK
+           END-IF
+      *> Validate resource name
+           MOVE LS-RESOURCE-NAME TO WS-SANITIZE-BUF
+           MOVE FUNCTION LENGTH(
+               FUNCTION TRIM(LS-RESOURCE-NAME))
+               TO WS-SANITIZE-LEN
+           CALL "SHELL-SANITIZE" USING
+               WS-SANITIZE-BUF WS-SANITIZE-LEN WS-SANITIZE-OK
+           END-CALL
+           IF WS-SANITIZE-OK = 0
+               DISPLAY "Rejected unsafe resource name"
+               GOBACK
+           END-IF
+
       *> Write form body to file for processing
            CALL "fopen" USING WS-BODY-FILE WS-FOPEN-MODE-W
                RETURNING WS-FILE-PTR

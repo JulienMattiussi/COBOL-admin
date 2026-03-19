@@ -19,6 +19,9 @@
        01 WS-FIELD-KEY         PIC X(64).
        01 WS-TAB-POS           PIC 9(4) COMP-5 VALUE 0.
        01 WS-VAL-START         PIC 9(4) COMP-5 VALUE 0.
+       01 WS-SANITIZE-BUF      PIC X(512).
+       01 WS-SANITIZE-LEN      PIC 9(4) COMP-5 VALUE 0.
+       01 WS-SANITIZE-OK       PIC 9 VALUE 0.
        01 WS-VAL-LEN           PIC 9(4) COMP-5 VALUE 0.
        01 WS-LINE-LEN          PIC 9(4) COMP-5 VALUE 0.
 
@@ -51,6 +54,21 @@
            LS-RESOURCE-TABLE LS-RES-IDX.
 
        MAIN-LOGIC.
+      *> Validate resource ID before using in shell
+           MOVE LS-RESOURCE-ID TO WS-SANITIZE-BUF
+           MOVE FUNCTION LENGTH(
+               FUNCTION TRIM(LS-RESOURCE-ID))
+               TO WS-SANITIZE-LEN
+           CALL "SHELL-SANITIZE" USING
+               WS-SANITIZE-BUF WS-SANITIZE-LEN WS-SANITIZE-OK
+           END-CALL
+           IF WS-SANITIZE-OK = 0
+               STRING "<h1>Invalid ID</h1>" DELIMITED BY SIZE
+                   INTO LS-HTML-BODY WITH POINTER LS-HTML-LEN
+               END-STRING
+               GOBACK
+           END-IF
+
            PERFORM FETCH-ITEM
            PERFORM BUILD-PAGE
            GOBACK.

@@ -20,6 +20,9 @@
            VALUE Z"/tmp/fields.txt".
        01 WS-IDX               PIC 99 VALUE 0.
        01 WS-RES-NAME-UPPER    PIC X(64).
+       01 WS-SANITIZE-BUF      PIC X(512).
+       01 WS-SANITIZE-LEN      PIC 9(4) COMP-5 VALUE 0.
+       01 WS-SANITIZE-OK       PIC 9 VALUE 0.
 
        LINKAGE SECTION.
        01 LS-API-URL           PIC X(256).
@@ -36,6 +39,19 @@
        PROCEDURE DIVISION USING LS-API-URL LS-RESOURCE-TABLE.
 
        MAIN-LOGIC.
+      *> Validate API URL before using in shell
+           MOVE LS-API-URL TO WS-SANITIZE-BUF
+           MOVE FUNCTION LENGTH(
+               FUNCTION TRIM(LS-API-URL))
+               TO WS-SANITIZE-LEN
+           CALL "SHELL-SANITIZE" USING
+               WS-SANITIZE-BUF WS-SANITIZE-LEN WS-SANITIZE-OK
+           END-CALL
+           IF WS-SANITIZE-OK = 0
+               DISPLAY "Rejected unsafe API URL"
+               GOBACK
+           END-IF
+
            PERFORM FETCH-SCHEMA
            PERFORM PARSE-RESOURCES
            PERFORM PARSE-FIELDS
