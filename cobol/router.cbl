@@ -209,6 +209,9 @@
                        IF LS-PAGE < 1
                            MOVE 1 TO LS-PAGE
                        END-IF
+                       IF LS-PAGE > 999
+                           MOVE 999 TO LS-PAGE
+                       END-IF
                    END-IF
                END-IF
            END-IF
@@ -239,6 +242,9 @@
                                WS-PARAM-VAL TRAILING))
                    IF LS-PER-PAGE < 1
                        MOVE 10 TO LS-PER-PAGE
+                   END-IF
+                   IF LS-PER-PAGE > 100
+                       MOVE 100 TO LS-PER-PAGE
                    END-IF
                END-IF
            END-IF
