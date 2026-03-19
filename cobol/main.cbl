@@ -168,15 +168,7 @@
       *> Handle POST on edit: submit form and redirect
            IF ROUTE-EDIT AND
                FUNCTION TRIM(WS-REQUEST-METHOD) = "POST"
-               PERFORM VARYING WS-MATCHED-RES-IDX
-                   FROM 1 BY 1
-                   UNTIL WS-MATCHED-RES-IDX >
-                       WS-RESOURCE-COUNT
-                   IF WS-RES-NAME(WS-MATCHED-RES-IDX)
-                       = WS-ROUTE-RESOURCE
-                       EXIT PERFORM
-                   END-IF
-               END-PERFORM
+               PERFORM FIND-RESOURCE-IDX
                CALL "FORM-SUBMIT" USING
                    API-BASE-URL WS-ROUTE-RESOURCE
                    WS-ROUTE-ID
@@ -209,15 +201,7 @@
                        CALL "PAGE-HOME" USING
                            WS-PAGE-CONTENT WS-PAGE-LEN
                    WHEN ROUTE-LIST
-                       PERFORM VARYING WS-MATCHED-RES-IDX
-                           FROM 1 BY 1
-                           UNTIL WS-MATCHED-RES-IDX >
-                               WS-RESOURCE-COUNT
-                           IF WS-RES-NAME(WS-MATCHED-RES-IDX)
-                               = WS-ROUTE-RESOURCE
-                               EXIT PERFORM
-                           END-IF
-                       END-PERFORM
+                       PERFORM FIND-RESOURCE-IDX
                        CALL "PAGE-LIST" USING
                            WS-PAGE-CONTENT WS-PAGE-LEN
                            WS-ROUTE-RESOURCE
@@ -226,15 +210,7 @@
                            WS-RESOURCE-TABLE
                            WS-MATCHED-RES-IDX
                    WHEN ROUTE-SHOW
-                       PERFORM VARYING WS-MATCHED-RES-IDX
-                           FROM 1 BY 1
-                           UNTIL WS-MATCHED-RES-IDX >
-                               WS-RESOURCE-COUNT
-                           IF WS-RES-NAME(WS-MATCHED-RES-IDX)
-                               = WS-ROUTE-RESOURCE
-                               EXIT PERFORM
-                           END-IF
-                       END-PERFORM
+                       PERFORM FIND-RESOURCE-IDX
                        CALL "PAGE-SHOW" USING
                            WS-PAGE-CONTENT WS-PAGE-LEN
                            WS-ROUTE-RESOURCE WS-ROUTE-ID
@@ -242,15 +218,7 @@
                            WS-RESOURCE-TABLE
                            WS-MATCHED-RES-IDX
                    WHEN ROUTE-EDIT
-                       PERFORM VARYING WS-MATCHED-RES-IDX
-                           FROM 1 BY 1
-                           UNTIL WS-MATCHED-RES-IDX >
-                               WS-RESOURCE-COUNT
-                           IF WS-RES-NAME(WS-MATCHED-RES-IDX)
-                               = WS-ROUTE-RESOURCE
-                               EXIT PERFORM
-                           END-IF
-                       END-PERFORM
+                       PERFORM FIND-RESOURCE-IDX
                        CALL "PAGE-EDIT" USING
                            WS-PAGE-CONTENT WS-PAGE-LEN
                            WS-ROUTE-RESOURCE WS-ROUTE-ID
@@ -282,6 +250,19 @@
       *>
       *> SEND-STATIC-RESPONSE: Send static file with content-type
       *>
+      *>
+      *> FIND-RESOURCE-IDX: Find WS-MATCHED-RES-IDX for route
+      *>
+       FIND-RESOURCE-IDX.
+           PERFORM VARYING WS-MATCHED-RES-IDX FROM 1 BY 1
+               UNTIL WS-MATCHED-RES-IDX > WS-RESOURCE-COUNT
+               IF WS-RES-NAME(WS-MATCHED-RES-IDX)
+                   = WS-ROUTE-RESOURCE
+                   EXIT PERFORM
+               END-IF
+           END-PERFORM
+           .
+
        SEND-REDIRECT.
            MOVE LOW-VALUE TO RESPONSE-BUFFER
 
