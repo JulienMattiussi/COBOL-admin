@@ -22,6 +22,12 @@
       *> Resource lookup
        01 WS-MATCHED-RES-IDX   PIC 99 VALUE 0.
 
+      *> Static file serving
+       01 WS-STATIC-BODY       PIC X(32768).
+       01 WS-STATIC-LEN        PIC 9(8) COMP-5 VALUE 0.
+       01 WS-CONTENT-TYPE      PIC X(64).
+       01 WS-STATIC-FOUND      PIC 9 VALUE 0.
+
        PROCEDURE DIVISION.
 
        MAIN-LOGIC.
@@ -154,53 +160,121 @@
                WS-ROUTE-TYPE WS-ROUTE-RESOURCE
                WS-RESOURCE-TABLE
                WS-PAGE WS-PER-PAGE
+               WS-STATIC-PATH
            END-CALL
 
-      *> Build page
-           MOVE LOW-VALUE TO HTML-BODY
-           MOVE 1 TO HTML-LEN
+      *> Handle static files separately
+           IF ROUTE-STATIC
+               CALL "SERVE-STATIC" USING
+                   WS-STATIC-PATH
+                   WS-STATIC-BODY WS-STATIC-LEN
+                   WS-CONTENT-TYPE WS-STATIC-FOUND
+               END-CALL
+               IF WS-STATIC-FOUND = 1
+                   PERFORM SEND-STATIC-RESPONSE
+               ELSE
+                   MOVE "NOTFOUND" TO WS-ROUTE-TYPE
+               END-IF
+           END-IF
 
-           MOVE "HEAD" TO WS-LAYOUT-ACTION
-           CALL "PAGE-LAYOUT" USING
-               HTML-BODY HTML-LEN
-               WS-RESOURCE-TABLE WS-LAYOUT-ACTION
-           END-CALL
+           IF NOT ROUTE-STATIC
+      *> Build HTML page
+               MOVE LOW-VALUE TO HTML-BODY
+               MOVE 1 TO HTML-LEN
 
-           EVALUATE TRUE
-               WHEN ROUTE-HOME
-                   CALL "PAGE-HOME" USING HTML-BODY HTML-LEN
-               WHEN ROUTE-LIST
-      *> Find resource index for field info
-                   PERFORM VARYING WS-MATCHED-RES-IDX
-                       FROM 1 BY 1
-                       UNTIL WS-MATCHED-RES-IDX >
-                           WS-RESOURCE-COUNT
-                       IF WS-RES-NAME(WS-MATCHED-RES-IDX)
-                           = WS-ROUTE-RESOURCE
-                           EXIT PERFORM
-                       END-IF
-                   END-PERFORM
-                   CALL "PAGE-LIST" USING
-                       HTML-BODY HTML-LEN
-                       WS-ROUTE-RESOURCE
-                       API-BASE-URL
-                       WS-PAGE WS-PER-PAGE WS-TOTAL-COUNT
-                       WS-RESOURCE-TABLE
-                       WS-MATCHED-RES-IDX
-               WHEN ROUTE-NOT-FOUND
-                   CALL "PAGE-404" USING HTML-BODY HTML-LEN
-           END-EVALUATE
+               MOVE "HEAD" TO WS-LAYOUT-ACTION
+               CALL "PAGE-LAYOUT" USING
+                   HTML-BODY HTML-LEN
+                   WS-RESOURCE-TABLE WS-LAYOUT-ACTION
+               END-CALL
 
-           MOVE "FOOT" TO WS-LAYOUT-ACTION
-           CALL "PAGE-LAYOUT" USING
-               HTML-BODY HTML-LEN
-               WS-RESOURCE-TABLE WS-LAYOUT-ACTION
-           END-CALL
+               EVALUATE TRUE
+                   WHEN ROUTE-HOME
+                       CALL "PAGE-HOME" USING
+                           HTML-BODY HTML-LEN
+                   WHEN ROUTE-LIST
+                       PERFORM VARYING WS-MATCHED-RES-IDX
+                           FROM 1 BY 1
+                           UNTIL WS-MATCHED-RES-IDX >
+                               WS-RESOURCE-COUNT
+                           IF WS-RES-NAME(WS-MATCHED-RES-IDX)
+                               = WS-ROUTE-RESOURCE
+                               EXIT PERFORM
+                           END-IF
+                       END-PERFORM
+                       CALL "PAGE-LIST" USING
+                           HTML-BODY HTML-LEN
+                           WS-ROUTE-RESOURCE
+                           API-BASE-URL
+                           WS-PAGE WS-PER-PAGE WS-TOTAL-COUNT
+                           WS-RESOURCE-TABLE
+                           WS-MATCHED-RES-IDX
+                   WHEN ROUTE-NOT-FOUND
+                       CALL "PAGE-404" USING
+                           HTML-BODY HTML-LEN
+               END-EVALUATE
 
-           SUBTRACT 1 FROM HTML-LEN
+               MOVE "FOOT" TO WS-LAYOUT-ACTION
+               CALL "PAGE-LAYOUT" USING
+                   HTML-BODY HTML-LEN
+                   WS-RESOURCE-TABLE WS-LAYOUT-ACTION
+               END-CALL
 
-      *> Send HTTP response
-           PERFORM SEND-RESPONSE
+               SUBTRACT 1 FROM HTML-LEN
+               PERFORM SEND-RESPONSE
+           END-IF
+           .
+
+      *>
+      *> SEND-STATIC-RESPONSE: Send static file with content-type
+      *>
+       SEND-STATIC-RESPONSE.
+           MOVE LOW-VALUE TO RESPONSE-BUFFER
+           MOVE WS-STATIC-LEN TO WS-LEN-STR
+
+           STRING
+               "HTTP/1.1 200 OK" DELIMITED BY SIZE
+               WS-CRLF DELIMITED BY SIZE
+               "Content-Type: " DELIMITED BY SIZE
+               WS-CONTENT-TYPE DELIMITED BY SPACE
+               WS-CRLF DELIMITED BY SIZE
+               "Content-Length: " DELIMITED BY SIZE
+               WS-LEN-STR DELIMITED BY SPACE
+               WS-CRLF DELIMITED BY SIZE
+               "Connection: close" DELIMITED BY SIZE
+               WS-CRLF DELIMITED BY SIZE
+               WS-CRLF DELIMITED BY SIZE
+               INTO RESPONSE-BUFFER
+           END-STRING
+
+           MOVE 0 TO RESPONSE-LEN
+           INSPECT RESPONSE-BUFFER TALLYING RESPONSE-LEN
+               FOR CHARACTERS BEFORE INITIAL LOW-VALUE
+
+           MOVE WS-STATIC-BODY(1:WS-STATIC-LEN)
+               TO RESPONSE-BUFFER(RESPONSE-LEN + 1:
+                   WS-STATIC-LEN)
+           ADD WS-STATIC-LEN TO RESPONSE-LEN
+
+           MOVE 0 TO WS-SEND-OFFSET
+           MOVE RESPONSE-LEN TO WS-SEND-REMAINING
+
+           PERFORM UNTIL WS-SEND-REMAINING <= 0
+               CALL "send" USING
+                   BY VALUE CLIENT-SOCKET
+                   BY REFERENCE
+                       RESPONSE-BUFFER(WS-SEND-OFFSET + 1:
+                           WS-SEND-REMAINING)
+                   BY VALUE WS-SEND-REMAINING
+                   BY VALUE 0
+                   RETURNING BYTES-SENT
+               END-CALL
+               IF BYTES-SENT <= 0
+                   EXIT PERFORM
+               END-IF
+               ADD BYTES-SENT TO WS-SEND-OFFSET
+               SUBTRACT BYTES-SENT FROM WS-SEND-REMAINING
+           END-PERFORM
            .
 
       *>

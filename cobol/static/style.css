@@ -1,0 +1,140 @@
+/* COBOL Admin — Base */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: sans-serif;
+  display: flex;
+  min-height: 100vh;
+}
+
+/* Sidebar */
+nav {
+  width: 220px;
+  background: #2c3e50;
+  color: #fff;
+  padding: 20px;
+  flex-shrink: 0;
+}
+
+nav h2 {
+  font-size: 16px;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #3d566e;
+}
+
+nav h2 a {
+  color: #fff;
+  text-decoration: none;
+}
+
+nav a {
+  display: block;
+  color: #ecf0f1;
+  text-decoration: none;
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin-bottom: 4px;
+  font-size: 14px;
+}
+
+nav a:hover {
+  background: #34495e;
+}
+
+/* Main content */
+main {
+  flex: 1;
+  padding: 32px;
+}
+
+h1 {
+  color: #2c3e50;
+  margin-bottom: 16px;
+}
+
+p {
+  color: #555;
+  line-height: 1.6;
+}
+
+/* List page toolbar */
+.list-toolbar {
+  margin-bottom: 16px;
+}
+
+.list-toolbar .total {
+  margin-left: 16px;
+  color: #888;
+}
+
+/* Per-page selector */
+.perpage-selector a {
+  padding: 4px 8px;
+  text-decoration: none;
+}
+
+.perpage-selector .active {
+  font-weight: bold;
+  padding: 4px 8px;
+}
+
+/* Table */
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th {
+  text-align: left;
+  padding: 8px;
+  border-bottom: 2px solid #2c3e50;
+}
+
+td {
+  padding: 8px;
+  border-bottom: 1px solid #ddd;
+}
+
+/* Pagination */
+.pagination {
+  margin-top: 16px;
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.pagination a {
+  padding: 6px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  text-decoration: none;
+  color: #2c3e50;
+}
+
+.pagination a:hover {
+  background: #f0f0f0;
+}
+
+.pagination .current {
+  padding: 6px 12px;
+  background: #2c3e50;
+  color: #fff;
+  border-radius: 4px;
+}
+
+.pagination .disabled {
+  padding: 6px 12px;
+  border: 1px solid #eee;
+  border-radius: 4px;
+  color: #ccc;
+}
+
+.pagination .ellipsis {
+  padding: 6px 4px;
+  color: #888;
+}

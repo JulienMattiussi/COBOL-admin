@@ -36,46 +36,18 @@
                "<!DOCTYPE html><html><head>" DELIMITED BY SIZE
                "<meta charset='utf-8'>" DELIMITED BY SIZE
                "<title>COBOL Admin</title>" DELIMITED BY SIZE
-               "<style>" DELIMITED BY SIZE
-               "*{box-sizing:border-box;margin:0;padding:0;}"
+               "<link rel='stylesheet'"
                    DELIMITED BY SIZE
-               "body{font-family:sans-serif;display:flex;"
+               " href='/static/style.css'>"
                    DELIMITED BY SIZE
-               "min-height:100vh;}" DELIMITED BY SIZE
-               "nav{width:220px;background:#2c3e50;"
-                   DELIMITED BY SIZE
-               "color:#fff;padding:20px;flex-shrink:0;}"
-                   DELIMITED BY SIZE
-               "nav h2{font-size:16px;margin-bottom:16px;"
-                   DELIMITED BY SIZE
-               "padding-bottom:8px;border-bottom:1px solid"
-                   DELIMITED BY SIZE
-               " #3d566e;}" DELIMITED BY SIZE
-               "nav a{display:block;color:#ecf0f1;"
-                   DELIMITED BY SIZE
-               "text-decoration:none;padding:8px 12px;"
-                   DELIMITED BY SIZE
-               "border-radius:4px;margin-bottom:4px;"
-                   DELIMITED BY SIZE
-               "font-size:14px;}" DELIMITED BY SIZE
-               "nav a:hover{background:#34495e;}"
-                   DELIMITED BY SIZE
-               "main{flex:1;padding:32px;}"
-                   DELIMITED BY SIZE
-               "h1{color:#2c3e50;margin-bottom:16px;}"
-                   DELIMITED BY SIZE
-               "p{color:#555;line-height:1.6;}"
-                   DELIMITED BY SIZE
-               "</style></head><body>" DELIMITED BY SIZE
+               "</head><body>" DELIMITED BY SIZE
                INTO LS-HTML-BODY WITH POINTER LS-HTML-LEN
            END-STRING
 
       *> Sidebar nav
            STRING
                "<nav>" DELIMITED BY SIZE
-               "<h2><a href='/' style='color:#fff;"
-                   DELIMITED BY SIZE
-               "text-decoration:none'>COBOL Admin</a></h2>"
+               "<h2><a href='/'>COBOL Admin</a></h2>"
                    DELIMITED BY SIZE
                INTO LS-HTML-BODY WITH POINTER LS-HTML-LEN
            END-STRING

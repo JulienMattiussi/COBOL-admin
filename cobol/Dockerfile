@@ -19,6 +19,8 @@ RUN cobc -free -c -I copybooks page-layout.cbl
 RUN cobc -free -c -I copybooks page-home.cbl
 RUN cobc -free -c -I copybooks page-list.cbl
 RUN cobc -free -c -I copybooks page-404.cbl
+RUN cobc -free -c -I copybooks pagination.cbl
+RUN cobc -free -c -I copybooks serve-static.cbl
 
 # Compile and link main with all modules
 RUN cobc -free -x -I copybooks -o cobol-admin \
@@ -29,7 +31,9 @@ RUN cobc -free -x -I copybooks -o cobol-admin \
     page-layout.o \
     page-home.o \
     page-list.o \
-    page-404.o
+    page-404.o \
+    pagination.o \
+    serve-static.o
 
 # Run tests at build time
 RUN chmod +x run-tests.sh && ./run-tests.sh

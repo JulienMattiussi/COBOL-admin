@@ -19,8 +19,12 @@ working-storage section.
 
 procedure division.
 
-    move "authors" to ws-res-name(1).
-    move "posts" to ws-res-name(2).
+    initialize ws-resource-table
+    move 2 to ws-resource-count
+    move "authors" to ws-res-name(1)
+    move 0 to ws-res-field-count(1)
+    move "posts" to ws-res-name(2)
+    move 0 to ws-res-field-count(2)
 
     perform test-page-home.
     perform test-page-404.
@@ -54,8 +58,8 @@ test-layout-head section.
         ws-resource-table ws-action
     end-call
     *> Should start with DOCTYPE
-    call "assert-equals" using "<!DOCTYPE html>",
-        ws-html-body(1:15).
+    call "assert-equals" using "<!DOCTYPE html><html><head>",
+        ws-html-body(1:27).
 
 test-layout-foot section.
     move low-value to ws-html-body

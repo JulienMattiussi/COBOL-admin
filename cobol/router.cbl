@@ -27,16 +27,19 @@
                 15 LS-RES-FIELD-NAME PIC X(64).
        01 LS-PAGE              PIC 999.
        01 LS-PER-PAGE          PIC 999.
+       01 LS-STATIC-PATH       PIC X(512).
 
        PROCEDURE DIVISION USING
            LS-REQUEST-PATH LS-PATH-LEN
            LS-ROUTE-TYPE LS-ROUTE-RESOURCE
            LS-RESOURCE-TABLE
-           LS-PAGE LS-PER-PAGE.
+           LS-PAGE LS-PER-PAGE
+           LS-STATIC-PATH.
 
        MAIN-LOGIC.
            MOVE "NOTFOUND" TO LS-ROUTE-TYPE
            MOVE SPACES TO LS-ROUTE-RESOURCE
+           MOVE SPACES TO LS-STATIC-PATH
            MOVE 1 TO LS-PAGE
            MOVE 10 TO LS-PER-PAGE
 
@@ -73,6 +76,14 @@
            IF FUNCTION TRIM(WS-CLEAN-PATH) = "/"
                MOVE "HOME" TO LS-ROUTE-TYPE
            ELSE
+               IF WS-CLEAN-LEN > 8
+                   IF WS-CLEAN-PATH(1:8) = "/static/"
+                       MOVE WS-CLEAN-PATH(
+                           9:WS-CLEAN-LEN - 8)
+                           TO LS-STATIC-PATH
+                       MOVE "STATIC" TO LS-ROUTE-TYPE
+                   END-IF
+               END-IF
                IF WS-CLEAN-LEN > 6
                    IF WS-CLEAN-PATH(1:6) = "/list/"
                        MOVE WS-CLEAN-PATH(

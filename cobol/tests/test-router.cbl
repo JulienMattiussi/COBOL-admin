@@ -11,6 +11,7 @@ working-storage section.
 01 ws-route-resource    pic x(64).
 01 ws-page             pic 999.
 01 ws-per-page         pic 999.
+01 ws-static-path      pic x(512).
 01 ws-resource-table.
    05 ws-resource-count pic 99 value 3.
    05 ws-resources occurs 20 times.
@@ -22,9 +23,14 @@ working-storage section.
 procedure division.
 
     *> Set up test resource table
-    move "authors" to ws-res-name(1).
-    move "posts" to ws-res-name(2).
-    move "tags" to ws-res-name(3).
+    initialize ws-resource-table
+    move 3 to ws-resource-count
+    move "authors" to ws-res-name(1)
+    move 0 to ws-res-field-count(1)
+    move "posts" to ws-res-name(2)
+    move 0 to ws-res-field-count(2)
+    move "tags" to ws-res-name(3)
+    move 0 to ws-res-field-count(3)
 
     perform test-home-route.
     perform test-list-valid.
@@ -42,6 +48,7 @@ test-home-route section.
         ws-route-type ws-route-resource
         ws-resource-table
         ws-page ws-per-page
+        ws-static-path
     end-call
     call "assert-equals" using "HOME", ws-route-type(1:4).
 
@@ -54,6 +61,7 @@ test-list-valid section.
         ws-route-type ws-route-resource
         ws-resource-table
         ws-page ws-per-page
+        ws-static-path
     end-call
     call "assert-equals" using "LIST", ws-route-type(1:4).
     call "assert-equals" using "authors", ws-route-resource(1:7).
@@ -67,6 +75,7 @@ test-list-invalid section.
         ws-route-type ws-route-resource
         ws-resource-table
         ws-page ws-per-page
+        ws-static-path
     end-call
     call "assert-equals" using "NOTFOUND", ws-route-type(1:8).
 
@@ -79,6 +88,7 @@ test-unknown-path section.
         ws-route-type ws-route-resource
         ws-resource-table
         ws-page ws-per-page
+        ws-static-path
     end-call
     call "assert-equals" using "NOTFOUND", ws-route-type(1:8).
 
@@ -91,6 +101,7 @@ test-list-second-resource section.
         ws-route-type ws-route-resource
         ws-resource-table
         ws-page ws-per-page
+        ws-static-path
     end-call
     call "assert-equals" using "LIST", ws-route-type(1:4).
     call "assert-equals" using "posts", ws-route-resource(1:5).
