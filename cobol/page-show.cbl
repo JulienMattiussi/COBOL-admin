@@ -17,8 +17,10 @@
        01 WS-REF-CANDIDATE     PIC X(64).
        01 WS-REF-CHECK-IDX     PIC 99 VALUE 0.
        01 WS-FIELD-KEY         PIC X(64).
-       01 WS-FIELD-VAL         PIC X(1024).
        01 WS-TAB-POS           PIC 9(4) COMP-5 VALUE 0.
+       01 WS-VAL-START         PIC 9(4) COMP-5 VALUE 0.
+       01 WS-VAL-LEN           PIC 9(4) COMP-5 VALUE 0.
+       01 WS-LINE-LEN          PIC 9(4) COMP-5 VALUE 0.
 
        LINKAGE SECTION.
        01 LS-HTML-BODY         PIC X(32768).
@@ -198,15 +200,27 @@
                    FOR CHARACTERS BEFORE INITIAL X"09"
 
                IF WS-FIELD-IDX > 0
-      *> Extract key and value
+      *> Extract key
                    MOVE SPACES TO WS-FIELD-KEY
-                   MOVE SPACES TO WS-FIELD-VAL
                    MOVE WS-LINE(1:WS-FIELD-IDX)
                        TO WS-FIELD-KEY
-                   COMPUTE WS-TAB-POS = WS-FIELD-IDX + 2
-                   MOVE FUNCTION TRIM(
-                       WS-LINE(WS-TAB-POS:) TRAILING)
-                       TO WS-FIELD-VAL
+
+      *> Compute value position and length
+                   COMPUTE WS-VAL-START = WS-FIELD-IDX + 2
+                   MOVE 0 TO WS-LINE-LEN
+                   INSPECT WS-LINE TALLYING WS-LINE-LEN
+                       FOR CHARACTERS
+                       BEFORE INITIAL LOW-VALUE
+                   IF WS-LINE-LEN = 0
+                       MOVE FUNCTION LENGTH(
+                           FUNCTION TRIM(WS-LINE TRAILING))
+                           TO WS-LINE-LEN
+                   END-IF
+                   COMPUTE WS-VAL-LEN =
+                       WS-LINE-LEN - WS-VAL-START + 1
+                   IF WS-VAL-LEN < 0
+                       MOVE 0 TO WS-VAL-LEN
+                   END-IF
 
       *> Write key cell
                    STRING
@@ -253,25 +267,32 @@
 
       *> Write value with optional link
                    IF WS-REF-CANDIDATE NOT = SPACES
+                       AND WS-VAL-LEN > 0
                        STRING
                            "<a href='/show/"
                                DELIMITED BY SIZE
                            WS-REF-CANDIDATE
                                DELIMITED BY SPACE
                            "/" DELIMITED BY SIZE
-                           WS-FIELD-VAL DELIMITED BY SPACE
+                           WS-LINE(WS-VAL-START:WS-VAL-LEN)
+                               DELIMITED BY SPACE
                            "'>" DELIMITED BY SIZE
-                           WS-FIELD-VAL DELIMITED BY SPACE
+                           WS-LINE(WS-VAL-START:WS-VAL-LEN)
+                               DELIMITED BY SPACE
                            "</a>" DELIMITED BY SIZE
                            INTO LS-HTML-BODY
                                WITH POINTER LS-HTML-LEN
                        END-STRING
                    ELSE
-                       STRING
-                           WS-FIELD-VAL DELIMITED BY SPACE
-                           INTO LS-HTML-BODY
-                               WITH POINTER LS-HTML-LEN
-                       END-STRING
+                       IF WS-VAL-LEN > 0
+                           STRING
+                               WS-LINE(
+                                   WS-VAL-START:WS-VAL-LEN)
+                                   DELIMITED BY SIZE
+                               INTO LS-HTML-BODY
+                                   WITH POINTER LS-HTML-LEN
+                           END-STRING
+                       END-IF
                    END-IF
 
                    STRING "</td></tr>" DELIMITED BY SIZE

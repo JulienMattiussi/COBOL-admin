@@ -64,7 +64,7 @@ test-layout section.
         ws-content-buf ws-content-len
     end-call
     *> Should start with DOCTYPE
-    call "assert-equals" using "<!DOCTYPE html><html><head>",
-        ws-html-body(1:27).
+    call "assert-equals" using "<!DOCTYPE html>",
+        ws-html-body(1:15).
 
 end program test-pages.

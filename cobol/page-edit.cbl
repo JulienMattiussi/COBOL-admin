@@ -14,8 +14,10 @@
        01 WS-DATA-FILE         PIC X(256)
            VALUE Z"/tmp/showdata.tsv".
        01 WS-FIELD-KEY         PIC X(64).
-       01 WS-FIELD-VAL         PIC X(1024).
        01 WS-TAB-POS           PIC 9(4) COMP-5 VALUE 0.
+       01 WS-VAL-START         PIC 9(4) COMP-5 VALUE 0.
+       01 WS-VAL-LEN           PIC 9(4) COMP-5 VALUE 0.
+       01 WS-LINE-LEN          PIC 9(4) COMP-5 VALUE 0.
        01 WS-FNAME-LEN         PIC 99 VALUE 0.
        01 WS-MATCH-IDX         PIC 99 VALUE 0.
        01 WS-FIELD-TYPE        PIC X(16).
@@ -175,12 +177,22 @@
 
                IF WS-TAB-POS > 0
                    MOVE SPACES TO WS-FIELD-KEY
-                   MOVE SPACES TO WS-FIELD-VAL
                    MOVE WS-LINE(1:WS-TAB-POS) TO WS-FIELD-KEY
-                   COMPUTE WS-TAB-POS = WS-TAB-POS + 2
-                   MOVE FUNCTION TRIM(
-                       WS-LINE(WS-TAB-POS:) TRAILING)
-                       TO WS-FIELD-VAL
+                   COMPUTE WS-VAL-START = WS-TAB-POS + 2
+                   MOVE 0 TO WS-LINE-LEN
+                   INSPECT WS-LINE TALLYING WS-LINE-LEN
+                       FOR CHARACTERS
+                       BEFORE INITIAL LOW-VALUE
+                   IF WS-LINE-LEN = 0
+                       MOVE FUNCTION LENGTH(
+                           FUNCTION TRIM(WS-LINE TRAILING))
+                           TO WS-LINE-LEN
+                   END-IF
+                   COMPUTE WS-VAL-LEN =
+                       WS-LINE-LEN - WS-VAL-START + 1
+                   IF WS-VAL-LEN < 0
+                       MOVE 0 TO WS-VAL-LEN
+                   END-IF
 
       *> Look up field type and editability
                    MOVE "string" TO WS-FIELD-TYPE
@@ -233,15 +245,23 @@
 
       *> Input (disabled if not editable)
            STRING
-               "<input type='" DELIMITED BY SIZE
+               '<input type="' DELIMITED BY SIZE
                WS-INPUT-TYPE DELIMITED BY SPACE
-               "' name='" DELIMITED BY SIZE
+               '" name="' DELIMITED BY SIZE
                WS-FIELD-KEY DELIMITED BY SPACE
-               "' id='" DELIMITED BY SIZE
+               '" id="' DELIMITED BY SIZE
                WS-FIELD-KEY DELIMITED BY SPACE
-               "' value='" DELIMITED BY SIZE
-               WS-FIELD-VAL DELIMITED BY SPACE
-               "'" DELIMITED BY SIZE
+               '" value="' DELIMITED BY SIZE
+               INTO LS-HTML-BODY WITH POINTER LS-HTML-LEN
+           END-STRING
+           IF WS-VAL-LEN > 0
+               STRING
+                   WS-LINE(WS-VAL-START:WS-VAL-LEN)
+                       DELIMITED BY SIZE
+                   INTO LS-HTML-BODY WITH POINTER LS-HTML-LEN
+               END-STRING
+           END-IF
+           STRING '"' DELIMITED BY SIZE
                INTO LS-HTML-BODY WITH POINTER LS-HTML-LEN
            END-STRING
 
