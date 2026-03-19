@@ -279,7 +279,7 @@
            .
 
        READ-DATA-ROW.
-           MOVE SPACES TO WS-DATA-LINE
+           MOVE LOW-VALUE TO WS-DATA-LINE
            CALL "fgets" USING
                BY REFERENCE WS-DATA-LINE
                BY VALUE 2048

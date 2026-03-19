@@ -107,7 +107,7 @@
            .
 
        READ-RESOURCE-LINE.
-           MOVE SPACES TO WS-LINE
+           MOVE LOW-VALUE TO WS-LINE
            CALL "fgets" USING
                BY REFERENCE WS-LINE
                BY VALUE 64
@@ -180,7 +180,7 @@
            .
 
        READ-FIELD-LINE.
-           MOVE SPACES TO WS-LINE
+           MOVE LOW-VALUE TO WS-LINE
            CALL "fgets" USING
                BY REFERENCE WS-LINE
                BY VALUE 256

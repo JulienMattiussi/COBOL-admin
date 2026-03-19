@@ -26,7 +26,7 @@
 ## Low (Quality / Performance)
 
 - [ ] Refactor main.cbl — extract socket accept loop and send logic (currently ~415 lines doing too much)
-- [ ] Move schema-loader's jq command (~50 lines of STRING concatenation) to an external shell script
+- [x] Move schema-loader's jq command to C helpers — eliminated with cJSON migration
 - [ ] Document buffer limits (4KB request, 32KB HTML, 20 resources, 20 fields) and handle overflow gracefully
-- [ ] Standardize buffer initialization — use LOW-VALUE consistently instead of mixing with SPACES
+- [x] Standardize buffer initialization — use LOW-VALUE consistently instead of mixing with SPACES
 - [ ] Add unit tests for page-list, page-show, page-edit, pagination, form-submit, serve-static, schema-loader
