@@ -23,6 +23,9 @@
        01 WS-PAGE-STR          PIC ZZ9.
        01 WS-PERPAGE-STR       PIC ZZ9.
        01 WS-TOTAL-STR         PIC ZZZZZ9.
+       01 WS-ID-COL            PIC 99 VALUE 0.
+       01 WS-COL-IDX           PIC 99 VALUE 0.
+       01 WS-ROW-ID            PIC X(10).
        01 WS-JQ-FIELDS         PIC X(512).
        01 WS-JQ-PTR            PIC 9(4) COMP-5 VALUE 0.
 
@@ -192,6 +195,18 @@
                INTO LS-HTML-BODY WITH POINTER LS-HTML-LEN
            END-STRING
 
+      *> Find which column is "id"
+           MOVE 0 TO WS-ID-COL
+           PERFORM VARYING WS-FIELD-IDX FROM 1 BY 1
+               UNTIL WS-FIELD-IDX >
+                   LS-RES-FIELD-COUNT(LS-RES-IDX)
+               IF LS-RES-FIELD-NAME(LS-RES-IDX, WS-FIELD-IDX)
+                   = "id"
+                   MOVE WS-FIELD-IDX TO WS-ID-COL
+                   EXIT PERFORM
+               END-IF
+           END-PERFORM
+
       *> Table header
            STRING
                "<table>"
@@ -254,9 +269,44 @@
                INSPECT WS-DATA-LINE
                    REPLACING ALL X"0D" BY SPACE
 
-      *> Parse TSV: split by tabs into table cells
+      *> First pass: find id value for the row link
+               MOVE 1 TO WS-COL-IDX
+               MOVE SPACES TO WS-ROW-ID
+               MOVE 0 TO WS-LINE-LEN
+               INSPECT WS-DATA-LINE TALLYING WS-LINE-LEN
+                   FOR CHARACTERS BEFORE INITIAL LOW-VALUE
+               IF WS-LINE-LEN = 0
+                   MOVE FUNCTION LENGTH(
+                       FUNCTION TRIM(WS-DATA-LINE TRAILING))
+                       TO WS-LINE-LEN
+               END-IF
+               MOVE 1 TO WS-CELL-START
+               PERFORM VARYING WS-SCAN FROM 1 BY 1
+                   UNTIL WS-SCAN > WS-LINE-LEN
+                   IF WS-DATA-LINE(WS-SCAN:1) = X"09"
+                       IF WS-COL-IDX = WS-ID-COL
+                           COMPUTE WS-CELL-END =
+                               WS-SCAN - WS-CELL-START
+                           MOVE WS-DATA-LINE(
+                               WS-CELL-START:WS-CELL-END)
+                               TO WS-ROW-ID
+                       END-IF
+                       COMPUTE WS-CELL-START = WS-SCAN + 1
+                       ADD 1 TO WS-COL-IDX
+                   END-IF
+               END-PERFORM
+               IF WS-COL-IDX = WS-ID-COL
+                   COMPUTE WS-CELL-END =
+                       WS-LINE-LEN - WS-CELL-START + 1
+                   MOVE WS-DATA-LINE(
+                       WS-CELL-START:WS-CELL-END)
+                       TO WS-ROW-ID
+               END-IF
+
+      *> Write <tr>
                STRING "<tr>" DELIMITED BY SIZE
-                   INTO LS-HTML-BODY WITH POINTER LS-HTML-LEN
+                   INTO LS-HTML-BODY
+                       WITH POINTER LS-HTML-LEN
                END-STRING
 
                MOVE 0 TO WS-LINE-LEN
@@ -268,6 +318,7 @@
                        TO WS-LINE-LEN
                END-IF
 
+      *> Second pass: write cells with links
                MOVE 1 TO WS-CELL-START
                PERFORM VARYING WS-SCAN FROM 1 BY 1
                    UNTIL WS-SCAN > WS-LINE-LEN
@@ -278,7 +329,7 @@
                        COMPUTE WS-CELL-START = WS-SCAN + 1
                    END-IF
                END-PERFORM
-      *> Last cell (after last tab)
+      *> Last cell
                COMPUTE WS-CELL-END =
                    WS-LINE-LEN - WS-CELL-START + 1
                IF WS-CELL-END > 0
@@ -292,10 +343,21 @@
            .
 
        WRITE-CELL.
-           STRING
-               "<td>" DELIMITED BY SIZE
+           STRING "<td>" DELIMITED BY SIZE
                INTO LS-HTML-BODY WITH POINTER LS-HTML-LEN
            END-STRING
+
+           IF WS-ID-COL > 0
+               STRING
+                   "<a href='/show/" DELIMITED BY SIZE
+                   LS-RESOURCE-NAME DELIMITED BY SPACE
+                   "/" DELIMITED BY SIZE
+                   WS-ROW-ID DELIMITED BY SPACE
+                   "'>" DELIMITED BY SIZE
+                   INTO LS-HTML-BODY WITH POINTER LS-HTML-LEN
+               END-STRING
+           END-IF
+
            IF WS-CELL-END > 0
                STRING
                    WS-DATA-LINE(WS-CELL-START:WS-CELL-END)
@@ -303,6 +365,13 @@
                    INTO LS-HTML-BODY WITH POINTER LS-HTML-LEN
                END-STRING
            END-IF
+
+           IF WS-ID-COL > 0
+               STRING "</a>" DELIMITED BY SIZE
+                   INTO LS-HTML-BODY WITH POINTER LS-HTML-LEN
+               END-STRING
+           END-IF
+
            STRING "</td>" DELIMITED BY SIZE
                INTO LS-HTML-BODY WITH POINTER LS-HTML-LEN
            END-STRING

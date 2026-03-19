@@ -2,9 +2,11 @@
        01 WS-ROUTE-TYPE        PIC X(10).
           88 ROUTE-HOME        VALUE "HOME".
           88 ROUTE-LIST        VALUE "LIST".
+          88 ROUTE-SHOW        VALUE "SHOW".
           88 ROUTE-STATIC      VALUE "STATIC".
           88 ROUTE-NOT-FOUND   VALUE "NOTFOUND".
        01 WS-ROUTE-RESOURCE    PIC X(64).
+       01 WS-ROUTE-ID          PIC X(10).
        01 WS-STATIC-PATH       PIC X(512).
 
       *> Pagination

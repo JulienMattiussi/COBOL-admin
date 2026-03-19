@@ -9,6 +9,7 @@ cobc -free -c -I copybooks page-home.cbl
 cobc -free -c -I copybooks page-list.cbl
 cobc -free -c -I copybooks page-404.cbl
 cobc -free -c -I copybooks pagination.cbl
+cobc -free -c -I copybooks page-show.cbl
 cobc -free -c -I copybooks serve-static.cbl
 
 echo "=== Running tests ==="
@@ -24,5 +25,6 @@ cobc -x -free -debug -I copybooks \
     page-list.o \
     page-404.o \
     pagination.o \
+    page-show.o \
     serve-static.o \
     --job='test-http-parse test-router test-pages'

@@ -160,7 +160,7 @@
                WS-ROUTE-TYPE WS-ROUTE-RESOURCE
                WS-RESOURCE-TABLE
                WS-PAGE WS-PER-PAGE
-               WS-STATIC-PATH
+               WS-ROUTE-ID WS-STATIC-PATH
            END-CALL
 
       *> Handle static files separately
@@ -207,6 +207,22 @@
                            WS-ROUTE-RESOURCE
                            API-BASE-URL
                            WS-PAGE WS-PER-PAGE WS-TOTAL-COUNT
+                           WS-RESOURCE-TABLE
+                           WS-MATCHED-RES-IDX
+                   WHEN ROUTE-SHOW
+                       PERFORM VARYING WS-MATCHED-RES-IDX
+                           FROM 1 BY 1
+                           UNTIL WS-MATCHED-RES-IDX >
+                               WS-RESOURCE-COUNT
+                           IF WS-RES-NAME(WS-MATCHED-RES-IDX)
+                               = WS-ROUTE-RESOURCE
+                               EXIT PERFORM
+                           END-IF
+                       END-PERFORM
+                       CALL "PAGE-SHOW" USING
+                           HTML-BODY HTML-LEN
+                           WS-ROUTE-RESOURCE WS-ROUTE-ID
+                           API-BASE-URL
                            WS-RESOURCE-TABLE
                            WS-MATCHED-RES-IDX
                    WHEN ROUTE-NOT-FOUND
