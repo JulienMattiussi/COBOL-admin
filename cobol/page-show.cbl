@@ -20,6 +20,7 @@
        01 WS-SANITIZE-BUF      PIC X(512).
        01 WS-SANITIZE-LEN      PIC 9(4) COMP-5 VALUE 0.
        01 WS-SANITIZE-OK       PIC 9 VALUE 0.
+       01 WS-FETCH-STATUS      PIC 9 VALUE 0.
        01 WS-VAL-LEN           PIC 9(4) COMP-5 VALUE 0.
        01 WS-LINE-LEN          PIC 9(4) COMP-5 VALUE 0.
 
@@ -69,8 +70,23 @@
 
            CALL "FETCH-ITEM" USING
                LS-API-URL LS-RESOURCE-NAME LS-RESOURCE-ID
+               WS-FETCH-STATUS
            END-CALL
-           PERFORM BUILD-PAGE
+           IF WS-FETCH-STATUS = 0
+               STRING
+                   "<h1>Error</h1>"
+                       DELIMITED BY SIZE
+                   "<p class='error'>Failed to load "
+                       DELIMITED BY SIZE
+                   LS-RESOURCE-NAME DELIMITED BY SPACE
+                   " #" DELIMITED BY SIZE
+                   LS-RESOURCE-ID DELIMITED BY SPACE
+                   "</p>" DELIMITED BY SIZE
+                   INTO LS-HTML-BODY WITH POINTER LS-HTML-LEN
+               END-STRING
+           ELSE
+               PERFORM BUILD-PAGE
+           END-IF
            GOBACK.
 
       *> Build HTML: heading, back link, field table

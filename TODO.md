@@ -17,9 +17,9 @@
 
 ## Medium (Robustness)
 
-- [ ] Add error handling for curl/jq failures — show user-friendly error when API is down or jq fails
-- [ ] Clean up temp files after use — 9 hardcoded `/tmp/` files; concurrent requests cause race conditions
-- [ ] Validate API responses — handle 404/500 from the API instead of silently rendering empty pages
+- [x] Add error handling for C helper failures — show user-friendly error when API is down or returns errors
+- [ ] Clean up temp files after use — hardcoded `/tmp/` files; concurrent requests cause race conditions
+- [x] Validate API responses — handle 404/500 from the API instead of silently rendering empty pages
 - [ ] Validate page/perPage range — prevent extreme values like `perPage=99999`
 - [ ] Handle form submit errors — show error message if PUT fails instead of silently redirecting
 

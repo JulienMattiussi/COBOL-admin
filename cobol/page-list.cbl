@@ -8,6 +8,7 @@
        01 WS-URL-Z             PIC X(512).
        01 WS-C-RESULT          PIC S9(9) COMP-5 VALUE 0.
        01 WS-C-TOTAL           PIC S9(9) COMP-5 VALUE 0.
+       01 WS-FETCH-OK          PIC 9 VALUE 1.
        01 WS-FOPEN-MODE        PIC X(4) VALUE Z"r".
        01 WS-FILE-PTR          USAGE POINTER.
        01 WS-FGETS-PTR         USAGE POINTER.
@@ -77,8 +78,21 @@
            LS-RESOURCE-TABLE LS-RES-IDX.
 
        MAIN-LOGIC.
+           MOVE 1 TO WS-FETCH-OK
            PERFORM FETCH-DATA
-           PERFORM BUILD-PAGE
+           IF WS-FETCH-OK = 0
+               STRING
+                   "<h1>" DELIMITED BY SIZE
+                   LS-RESOURCE-NAME DELIMITED BY SPACE
+                   "</h1>" DELIMITED BY SIZE
+                   "<p class='error'>Failed to load data"
+                       DELIMITED BY SIZE
+                   " from API.</p>" DELIMITED BY SIZE
+                   INTO LS-HTML-BODY WITH POINTER LS-HTML-LEN
+               END-STRING
+           ELSE
+               PERFORM BUILD-PAGE
+           END-IF
            GOBACK.
 
       *> Fetch paginated data from API using C helpers
@@ -109,6 +123,11 @@
                BY REFERENCE WS-HEADER-FILE
                RETURNING WS-C-RESULT
            END-CALL
+
+           IF WS-C-RESULT NOT = 0
+               MOVE 0 TO WS-FETCH-OK
+               GOBACK
+           END-IF
 
       *> Extract total count from headers
            CALL "cobol_extract_total" USING

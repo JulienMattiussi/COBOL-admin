@@ -19,11 +19,15 @@
        01 LS-API-URL           PIC X(256).
        01 LS-RESOURCE-NAME     PIC X(64).
        01 LS-RESOURCE-ID       PIC X(10).
+       01 LS-STATUS            PIC 9.
 
        PROCEDURE DIVISION USING
-           LS-API-URL LS-RESOURCE-NAME LS-RESOURCE-ID.
+           LS-API-URL LS-RESOURCE-NAME LS-RESOURCE-ID
+           LS-STATUS.
 
        MAIN-LOGIC.
+           MOVE 1 TO LS-STATUS
+
       *> Build URL
            MOVE LOW-VALUE TO WS-URL
            STRING
@@ -53,6 +57,7 @@
 
            IF WS-RESULT NOT = 0
                DISPLAY "HTTP GET failed: " WS-RESULT
+               MOVE 0 TO LS-STATUS
                GOBACK
            END-IF
 

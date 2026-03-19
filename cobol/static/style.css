@@ -62,6 +62,15 @@ p {
   line-height: 1.6;
 }
 
+/* Error messages */
+.error {
+  color: #c0392b;
+  background: #fdf0ef;
+  padding: 12px 16px;
+  border-radius: 4px;
+  border: 1px solid #e6b0aa;
+}
+
 /* List page toolbar */
 .list-toolbar {
   margin-bottom: 16px;
