@@ -300,7 +300,7 @@ main p a:hover {
 
 .form-field input:disabled {
   background: #1a1a2e;
-  color: #555;
+  color: #a8a8a8;
   border-color: #333;
 }
 
