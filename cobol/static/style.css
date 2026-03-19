@@ -242,7 +242,7 @@ main p a {
   margin-top: 24px;
 }
 
-.form-actions a {
+.form-actions a:not(.btn) {
   color: #555;
   text-decoration: none;
 }
