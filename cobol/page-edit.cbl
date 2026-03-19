@@ -234,15 +234,7 @@
       *> Map schema type to HTML input type
       *> Use text for disabled fields (number+disabled renders
       *> poorly in some browsers)
-           IF WS-FIELD-EDIT = 0
-               MOVE "text" TO WS-INPUT-TYPE
-           ELSE
-               IF FUNCTION TRIM(WS-FIELD-TYPE) = "integer"
-                   MOVE "number" TO WS-INPUT-TYPE
-               ELSE
-                   MOVE "text" TO WS-INPUT-TYPE
-               END-IF
-           END-IF
+           MOVE "text" TO WS-INPUT-TYPE
 
       *> Label
            STRING

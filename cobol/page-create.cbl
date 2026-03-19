@@ -89,11 +89,7 @@
            GOBACK.
 
        RENDER-INPUT.
-           IF FUNCTION TRIM(WS-FIELD-TYPE) = "integer"
-               MOVE "number" TO WS-INPUT-TYPE
-           ELSE
-               MOVE "text" TO WS-INPUT-TYPE
-           END-IF
+           MOVE "text" TO WS-INPUT-TYPE
 
            STRING
                "<div class='form-field'>"
