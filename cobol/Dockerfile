@@ -12,6 +12,7 @@ ADD https://raw.githubusercontent.com/OlegKunitsyn/gcblunit/master/gcblunit.cbl 
 COPY . .
 
 # Compile modules as object files
+RUN cobc -free -c -I copybooks template-engine.cbl
 RUN cobc -free -c -I copybooks schema-loader.cbl
 RUN cobc -free -c -I copybooks http-parse.cbl
 RUN cobc -free -c -I copybooks router.cbl
@@ -28,6 +29,7 @@ RUN cobc -free -c -I copybooks serve-static.cbl
 # Compile and link main with all modules
 RUN cobc -free -x -I copybooks -o cobol-admin \
     main.cbl \
+    template-engine.o \
     schema-loader.o \
     http-parse.o \
     router.o \

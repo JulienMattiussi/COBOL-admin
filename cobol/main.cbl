@@ -16,8 +16,7 @@
        01 WS-SEND-OFFSET       PIC 9(8) COMP-5 VALUE 0.
        01 WS-SEND-REMAINING    PIC 9(8) COMP-5 VALUE 0.
 
-      *> Layout action
-       01 WS-LAYOUT-ACTION     PIC X(5).
+      *> (removed layout action - now single call)
 
       *> Resource lookup
        01 WS-MATCHED-RES-IDX   PIC 99 VALUE 0.
@@ -201,20 +200,14 @@
            END-IF
 
            IF NOT ROUTE-STATIC
-      *> Build HTML page
-               MOVE LOW-VALUE TO HTML-BODY
-               MOVE 1 TO HTML-LEN
-
-               MOVE "HEAD" TO WS-LAYOUT-ACTION
-               CALL "PAGE-LAYOUT" USING
-                   HTML-BODY HTML-LEN
-                   WS-RESOURCE-TABLE WS-LAYOUT-ACTION
-               END-CALL
+      *> Render page content into separate buffer
+               MOVE LOW-VALUE TO WS-PAGE-CONTENT
+               MOVE 1 TO WS-PAGE-LEN
 
                EVALUATE TRUE
                    WHEN ROUTE-HOME
                        CALL "PAGE-HOME" USING
-                           HTML-BODY HTML-LEN
+                           WS-PAGE-CONTENT WS-PAGE-LEN
                    WHEN ROUTE-LIST
                        PERFORM VARYING WS-MATCHED-RES-IDX
                            FROM 1 BY 1
@@ -226,7 +219,7 @@
                            END-IF
                        END-PERFORM
                        CALL "PAGE-LIST" USING
-                           HTML-BODY HTML-LEN
+                           WS-PAGE-CONTENT WS-PAGE-LEN
                            WS-ROUTE-RESOURCE
                            API-BASE-URL
                            WS-PAGE WS-PER-PAGE WS-TOTAL-COUNT
@@ -243,7 +236,7 @@
                            END-IF
                        END-PERFORM
                        CALL "PAGE-SHOW" USING
-                           HTML-BODY HTML-LEN
+                           WS-PAGE-CONTENT WS-PAGE-LEN
                            WS-ROUTE-RESOURCE WS-ROUTE-ID
                            API-BASE-URL
                            WS-RESOURCE-TABLE
@@ -259,20 +252,25 @@
                            END-IF
                        END-PERFORM
                        CALL "PAGE-EDIT" USING
-                           HTML-BODY HTML-LEN
+                           WS-PAGE-CONTENT WS-PAGE-LEN
                            WS-ROUTE-RESOURCE WS-ROUTE-ID
                            API-BASE-URL
                            WS-RESOURCE-TABLE
                            WS-MATCHED-RES-IDX
                    WHEN ROUTE-NOT-FOUND
                        CALL "PAGE-404" USING
-                           HTML-BODY HTML-LEN
+                           WS-PAGE-CONTENT WS-PAGE-LEN
                END-EVALUATE
 
-               MOVE "FOOT" TO WS-LAYOUT-ACTION
+      *> Wrap page content in layout template
+               SUBTRACT 1 FROM WS-PAGE-LEN
+               MOVE LOW-VALUE TO HTML-BODY
+               MOVE 1 TO HTML-LEN
+
                CALL "PAGE-LAYOUT" USING
                    HTML-BODY HTML-LEN
-                   WS-RESOURCE-TABLE WS-LAYOUT-ACTION
+                   WS-RESOURCE-TABLE
+                   WS-PAGE-CONTENT WS-PAGE-LEN
                END-CALL
 
                SUBTRACT 1 FROM HTML-LEN

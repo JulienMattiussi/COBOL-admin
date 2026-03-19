@@ -2,6 +2,7 @@
 set -e
 
 echo "=== Compiling modules ==="
+cobc -free -c -I copybooks template-engine.cbl
 cobc -free -c -I copybooks http-parse.cbl
 cobc -free -c -I copybooks router.cbl
 cobc -free -c -I copybooks page-layout.cbl
@@ -20,6 +21,7 @@ cobc -x -free -debug -I copybooks \
     tests/test-http-parse.cbl \
     tests/test-router.cbl \
     tests/test-pages.cbl \
+    template-engine.o \
     http-parse.o \
     router.o \
     page-layout.o \

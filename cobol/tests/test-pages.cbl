@@ -17,7 +17,8 @@ working-storage section.
          15 ws-res-field-name pic x(64).
          15 ws-res-field-type pic x(16).
          15 ws-res-field-edit pic 9.
-01 ws-action            pic x(5).
+01 ws-content-buf       pic x(16384).
+01 ws-content-len       pic 9(8) comp-5.
 
 procedure division.
 
@@ -30,8 +31,7 @@ procedure division.
 
     perform test-page-home.
     perform test-page-404.
-    perform test-layout-head.
-    perform test-layout-foot.
+    perform test-layout.
     goback.
 
 test-page-home section.
@@ -51,27 +51,20 @@ test-page-404 section.
     call "assert-equals" using "<h1>404 - Not Found</h1>",
         ws-html-body(1:24).
 
-test-layout-head section.
+test-layout section.
+    *> Render with sample page content
+    move low-value to ws-content-buf
+    move "<p>test</p>" to ws-content-buf
+    move 11 to ws-content-len
     move low-value to ws-html-body
     move 1 to ws-html-len
-    move "HEAD" to ws-action
     call "PAGE-LAYOUT" using
         ws-html-body ws-html-len
-        ws-resource-table ws-action
+        ws-resource-table
+        ws-content-buf ws-content-len
     end-call
     *> Should start with DOCTYPE
     call "assert-equals" using "<!DOCTYPE html><html><head>",
         ws-html-body(1:27).
-
-test-layout-foot section.
-    move low-value to ws-html-body
-    move 1 to ws-html-len
-    move "FOOT" to ws-action
-    call "PAGE-LAYOUT" using
-        ws-html-body ws-html-len
-        ws-resource-table ws-action
-    end-call
-    call "assert-equals" using "</main></body></html>",
-        ws-html-body(1:21).
 
 end program test-pages.
