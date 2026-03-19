@@ -35,6 +35,8 @@ RUN cobc -free -c -I copybooks html-escape.cbl
 RUN cobc -free -c -I copybooks shell-sanitize.cbl
 RUN cobc -free -c -I copybooks fetch-item.cbl
 RUN cobc -free -c -I copybooks ref-detect.cbl
+RUN cobc -free -c -I copybooks page-create.cbl
+RUN cobc -free -c -I copybooks form-create.cbl
 
 # Compile and link main with all modules
 RUN cobc -free -x -I copybooks -o cobol-admin \
@@ -56,6 +58,8 @@ RUN cobc -free -x -I copybooks -o cobol-admin \
     shell-sanitize.o \
     fetch-item.o \
     ref-detect.o \
+    page-create.o \
+    form-create.o \
     helpers.o \
     cJSON.o \
     -lcurl

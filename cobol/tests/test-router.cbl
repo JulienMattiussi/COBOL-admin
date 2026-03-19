@@ -42,6 +42,8 @@ procedure division.
     perform test-list-second-resource.
     perform test-show-route.
     perform test-show-invalid.
+    perform test-create-route.
+    perform test-create-invalid.
     goback.
 
 test-home-route section.
@@ -129,6 +131,33 @@ test-show-route section.
 test-show-invalid section.
     move spaces to ws-request-path
     move "/show/bogus/1" to ws-request-path
+    move 13 to ws-path-len
+    call "ROUTER" using
+        ws-request-path ws-path-len
+        ws-route-type ws-route-resource
+        ws-resource-table
+        ws-page ws-per-page
+        ws-route-id ws-static-path
+    end-call
+    call "assert-equals" using "NOTFOUND", ws-route-type(1:8).
+
+test-create-route section.
+    move spaces to ws-request-path
+    move "/create/authors" to ws-request-path
+    move 15 to ws-path-len
+    call "ROUTER" using
+        ws-request-path ws-path-len
+        ws-route-type ws-route-resource
+        ws-resource-table
+        ws-page ws-per-page
+        ws-route-id ws-static-path
+    end-call
+    call "assert-equals" using "CREATE", ws-route-type(1:6).
+    call "assert-equals" using "authors", ws-route-resource(1:7).
+
+test-create-invalid section.
+    move spaces to ws-request-path
+    move "/create/bogus" to ws-request-path
     move 13 to ws-path-len
     call "ROUTER" using
         ws-request-path ws-path-len

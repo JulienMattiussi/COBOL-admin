@@ -18,6 +18,8 @@ cobc -free -c -I copybooks html-escape.cbl
 cobc -free -c -I copybooks shell-sanitize.cbl
 cobc -free -c -I copybooks fetch-item.cbl
 cobc -free -c -I copybooks ref-detect.cbl
+cobc -free -c -I copybooks page-create.cbl
+cobc -free -c -I copybooks form-create.cbl
 
 echo "=== Running tests ==="
 cobc -x -free -debug -I copybooks \
@@ -44,6 +46,8 @@ cobc -x -free -debug -I copybooks \
     shell-sanitize.o \
     fetch-item.o \
     ref-detect.o \
+    page-create.o \
+    form-create.o \
     helpers.o \
     cJSON.o \
     -lcurl \

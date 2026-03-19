@@ -104,6 +104,23 @@
                        END-PERFORM
                    END-IF
                END-IF
+      *> Match /create/{resource}
+               IF WS-CLEAN-LEN > 8
+                   IF WS-CLEAN-PATH(1:8) = "/create/"
+                       MOVE WS-CLEAN-PATH(
+                           9:WS-CLEAN-LEN - 8)
+                           TO LS-ROUTE-RESOURCE
+                       PERFORM VARYING WS-IDX FROM 1 BY 1
+                           UNTIL WS-IDX > LS-RESOURCE-COUNT
+                           IF LS-RES-NAME(WS-IDX)
+                               = LS-ROUTE-RESOURCE
+                               MOVE "CREATE"
+                                   TO LS-ROUTE-TYPE
+                               EXIT PERFORM
+                           END-IF
+                       END-PERFORM
+                   END-IF
+               END-IF
       *> Match /show/{resource}/{id}
                IF WS-CLEAN-LEN > 6
                    IF WS-CLEAN-PATH(1:6) = "/show/"

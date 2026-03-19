@@ -23,6 +23,7 @@
 
       *> Form submit status
        01 WS-SUBMIT-STATUS     PIC 9 VALUE 0.
+       01 WS-CREATED-ID        PIC X(10).
 
       *> Static file serving
        01 WS-STATIC-BODY       PIC X(32768).
@@ -170,6 +171,48 @@
                WS-ROUTE-ID WS-STATIC-PATH
            END-CALL
 
+      *> Handle POST on create: submit form and redirect
+           IF ROUTE-CREATE AND
+               FUNCTION TRIM(WS-REQUEST-METHOD) = "POST"
+               CALL "FORM-CREATE" USING
+                   API-BASE-URL WS-ROUTE-RESOURCE
+                   WS-REQUEST-BODY WS-BODY-LEN
+                   WS-CREATED-ID WS-SUBMIT-STATUS
+               END-CALL
+               IF WS-SUBMIT-STATUS = 1
+                   MOVE WS-CREATED-ID TO WS-ROUTE-ID
+                   PERFORM SEND-REDIRECT
+               ELSE
+                   MOVE LOW-VALUE TO WS-PAGE-CONTENT
+                   MOVE 1 TO WS-PAGE-LEN
+                   STRING
+                       "<h1>Error</h1>"
+                           DELIMITED BY SIZE
+                       "<p class='error'>Failed to create."
+                           DELIMITED BY SIZE
+                       " Please try again.</p>"
+                           DELIMITED BY SIZE
+                       "<p><a href='/create/"
+                           DELIMITED BY SIZE
+                       WS-ROUTE-RESOURCE DELIMITED BY SPACE
+                       "'>Back to form</a></p>"
+                           DELIMITED BY SIZE
+                       INTO WS-PAGE-CONTENT
+                           WITH POINTER WS-PAGE-LEN
+                   END-STRING
+                   SUBTRACT 1 FROM WS-PAGE-LEN
+                   MOVE LOW-VALUE TO HTML-BODY
+                   MOVE 1 TO HTML-LEN
+                   CALL "PAGE-LAYOUT" USING
+                       HTML-BODY HTML-LEN
+                       WS-RESOURCE-TABLE
+                       WS-PAGE-CONTENT WS-PAGE-LEN
+                   END-CALL
+                   SUBTRACT 1 FROM HTML-LEN
+                   PERFORM SEND-RESPONSE
+               END-IF
+           ELSE
+
       *> Handle POST on edit: submit form and redirect
            IF ROUTE-EDIT AND
                FUNCTION TRIM(WS-REQUEST-METHOD) = "POST"
@@ -264,6 +307,13 @@
                            API-BASE-URL
                            WS-RESOURCE-TABLE
                            WS-MATCHED-RES-IDX
+                   WHEN ROUTE-CREATE
+                       PERFORM FIND-RESOURCE-IDX
+                       CALL "PAGE-CREATE" USING
+                           WS-PAGE-CONTENT WS-PAGE-LEN
+                           WS-ROUTE-RESOURCE
+                           WS-RESOURCE-TABLE
+                           WS-MATCHED-RES-IDX
                    WHEN ROUTE-NOT-FOUND
                        CALL "PAGE-404" USING
                            WS-PAGE-CONTENT WS-PAGE-LEN
@@ -282,6 +332,7 @@
 
                SUBTRACT 1 FROM HTML-LEN
                PERFORM SEND-RESPONSE
+           END-IF
            END-IF
            END-IF
            .

@@ -90,6 +90,78 @@ int cobol_http_put(const char *url, const char *json_file) {
     return 0;
 }
 
+int cobol_http_post(const char *url, const char *json_file,
+                    const char *response_file) {
+    /* Read JSON body from file */
+    FILE *f = fopen(json_file, "r");
+    if (!f) return -2;
+    fseek(f, 0, SEEK_END);
+    long len = ftell(f);
+    fseek(f, 0, SEEK_SET);
+    char *body = malloc(len + 1);
+    if (!body) { fclose(f); return -4; }
+    fread(body, 1, len, f);
+    body[len] = 0;
+    fclose(f);
+
+    CURL *curl = curl_easy_init();
+    if (!curl) { free(body); return -1; }
+
+    struct curl_slist *headers = NULL;
+    headers = curl_slist_append(headers, "Content-Type: application/json");
+
+    FILE *resp = fopen(response_file, "w");
+    if (!resp) { free(body); curl_easy_cleanup(curl); return -2; }
+
+    curl_easy_setopt(curl, CURLOPT_URL, url);
+    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, body);
+    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, resp);
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
+
+    CURLcode res = curl_easy_perform(curl);
+
+    long http_code = 0;
+    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+
+    fclose(resp);
+    curl_slist_free_all(headers);
+    curl_easy_cleanup(curl);
+    free(body);
+
+    if (res != CURLE_OK) return -3;
+    if (http_code >= 400) return (int)http_code;
+    return 0;
+}
+
+/*
+ * Extract "id" field from a JSON file, return as integer
+ */
+int cobol_json_extract_id(const char *json_file, int *id_out) {
+    *id_out = 0;
+    FILE *f = fopen(json_file, "r");
+    if (!f) return -1;
+    fseek(f, 0, SEEK_END);
+    long len = ftell(f);
+    fseek(f, 0, SEEK_SET);
+    char *data = malloc(len + 1);
+    if (!data) { fclose(f); return -2; }
+    fread(data, 1, len, f);
+    data[len] = 0;
+    fclose(f);
+
+    cJSON *root = cJSON_Parse(data);
+    free(data);
+    if (!root) return -3;
+
+    cJSON *id = cJSON_GetObjectItem(root, "id");
+    if (id && cJSON_IsNumber(id)) {
+        *id_out = id->valueint;
+    }
+    cJSON_Delete(root);
+    return 0;
+}
+
 /* --- JSON helpers using cJSON --- */
 
 /*
@@ -470,6 +542,7 @@ void cobol_cleanup_temp(void) {
         "/tmp/headers.txt",
         "/tmp/formbody.txt",
         "/tmp/formjson.json",
+        "/tmp/create_response.json",
         NULL
     };
     for (int i = 0; files[i]; i++) {

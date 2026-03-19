@@ -171,11 +171,17 @@
 
       *> Build HTML: heading, perPage selector, table, pagination
        BUILD-PAGE.
-      *> Heading
+      *> Heading with Create button
            STRING
+               "<div class='show-header'>"
+                   DELIMITED BY SIZE
                "<h1>" DELIMITED BY SIZE
                LS-RESOURCE-NAME DELIMITED BY SPACE
                "</h1>" DELIMITED BY SIZE
+               "<a class='btn' href='/create/"
+                   DELIMITED BY SIZE
+               LS-RESOURCE-NAME DELIMITED BY SPACE
+               "'>Create</a></div>" DELIMITED BY SIZE
                INTO LS-HTML-BODY WITH POINTER LS-HTML-LEN
            END-STRING
 

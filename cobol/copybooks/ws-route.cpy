@@ -4,6 +4,7 @@
           88 ROUTE-LIST        VALUE "LIST".
           88 ROUTE-SHOW        VALUE "SHOW".
           88 ROUTE-EDIT        VALUE "EDIT".
+          88 ROUTE-CREATE      VALUE "CREATE".
           88 ROUTE-STATIC      VALUE "STATIC".
           88 ROUTE-NOT-FOUND   VALUE "NOTFOUND".
        01 WS-ROUTE-RESOURCE    PIC X(64).
