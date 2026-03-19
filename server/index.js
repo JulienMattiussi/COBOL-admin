@@ -11,37 +11,17 @@ app.use(express.json());
 
 // --- In-memory data with seed ---
 const db = {
-  authors: Array.from({ length: 100 }, (_, i) => ({
-    id: i + 1,
-    name: `Author ${i + 1}`,
-    email: `author${i + 1}@example.com`,
-  })),
-  tags: Array.from({ length: 100 }, (_, i) => ({
-    id: i + 1,
-    name: `tag-${i + 1}`,
-  })),
-  posts: Array.from({ length: 150 }, (_, i) => ({
-    id: i + 1,
-    title: `Post ${i + 1}`,
-    body: `Content of post ${i + 1}.`,
-    authorId: (i % 100) + 1,
-    tagIds: [(i % 100) + 1],
-    createdAt: new Date(2025, 0, (i % 28) + 1).toISOString(),
-  })),
-  comments: Array.from({ length: 200 }, (_, i) => ({
-    id: i + 1,
-    postId: (i % 150) + 1,
-    body: `Comment ${i + 1}`,
-    authorName: `Commenter ${(i % 100) + 1}`,
-    createdAt: new Date(2025, 1, (i % 28) + 1).toISOString(),
-  })),
+  authors: require("./fixtures/authors"),
+  tags: require("./fixtures/tags"),
+  posts: require("./fixtures/posts"),
+  comments: require("./fixtures/comments"),
 };
 
 const counters = {
-  authors: 100,
-  tags: 100,
-  posts: 150,
-  comments: 200,
+  authors: db.authors.length,
+  tags: db.tags.length,
+  posts: db.posts.length,
+  comments: db.comments.length,
 };
 
 // --- Generic CRUD helper ---
