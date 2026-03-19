@@ -24,6 +24,13 @@
        MAIN-LOGIC.
            DISPLAY "COBOL Admin Server starting..."
 
+      *> Read API URL from environment, fallback to default
+           ACCEPT API-BASE-URL FROM ENVIRONMENT "API_BASE_URL"
+           IF API-BASE-URL = SPACES
+               MOVE "http://server:3000" TO API-BASE-URL
+           END-IF
+           DISPLAY "API URL: " FUNCTION TRIM(API-BASE-URL)
+
            CALL "SCHEMA-LOADER" USING
                API-BASE-URL WS-RESOURCE-TABLE
            END-CALL
