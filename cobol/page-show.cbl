@@ -4,7 +4,7 @@
 
        DATA DIVISION.
        WORKING-STORAGE SECTION.
-       01 WS-CMD               PIC X(1024).
+      *> (WS-CMD removed — fetch-item is now a shared module)
        01 WS-FOPEN-MODE        PIC X(4) VALUE Z"r".
        01 WS-FILE-PTR          USAGE POINTER.
        01 WS-FGETS-PTR         USAGE POINTER.
@@ -69,84 +69,11 @@
                GOBACK
            END-IF
 
-           PERFORM FETCH-ITEM
+           CALL "FETCH-ITEM" USING
+               LS-API-URL LS-RESOURCE-NAME LS-RESOURCE-ID
+           END-CALL
            PERFORM BUILD-PAGE
            GOBACK.
-
-      *> Fetch single item from API, convert to TSV line
-       FETCH-ITEM.
-           MOVE LOW-VALUE TO WS-CMD
-           STRING
-               "curl -s '" DELIMITED BY SIZE
-               LS-API-URL DELIMITED BY SPACE
-               "/" DELIMITED BY SIZE
-               LS-RESOURCE-NAME DELIMITED BY SPACE
-               "/" DELIMITED BY SIZE
-               LS-RESOURCE-ID DELIMITED BY SPACE
-               "' | jq -r '[" DELIMITED BY SIZE
-               INTO WS-CMD
-           END-STRING
-
-      *> Append field selectors
-           PERFORM VARYING WS-FIELD-IDX FROM 1 BY 1
-               UNTIL WS-FIELD-IDX >
-                   LS-RES-FIELD-COUNT(LS-RES-IDX)
-               IF WS-FIELD-IDX > 1
-                   STRING "," DELIMITED BY SIZE
-                       INTO WS-CMD
-                       WITH POINTER WS-FIELD-IDX
-                   END-STRING
-               END-IF
-           END-PERFORM
-
-      *> Need to rebuild cmd properly with pointer
-           MOVE LOW-VALUE TO WS-CMD
-           PERFORM BUILD-FETCH-CMD
-
-           CALL "SYSTEM" USING FUNCTION TRIM(WS-CMD)
-           END-CALL
-           .
-
-       BUILD-FETCH-CMD.
-           MOVE LOW-VALUE TO WS-CMD
-           MOVE 1 TO WS-FIELD-IDX
-
-           STRING
-               "curl -s '" DELIMITED BY SIZE
-               LS-API-URL DELIMITED BY SPACE
-               "/" DELIMITED BY SIZE
-               LS-RESOURCE-NAME DELIMITED BY SPACE
-               "/" DELIMITED BY SIZE
-               LS-RESOURCE-ID DELIMITED BY SPACE
-               "' | jq -r '" DELIMITED BY SIZE
-               INTO WS-CMD
-           END-STRING
-
-      *> Find end of string for appending
-           MOVE 0 TO WS-FIELD-IDX
-           INSPECT WS-CMD TALLYING WS-FIELD-IDX
-               FOR CHARACTERS BEFORE INITIAL LOW-VALUE
-           ADD 1 TO WS-FIELD-IDX
-
-      *> Append field extraction: outputs key<tab>value per field
-           STRING
-               "to_entries[]"
-                   DELIMITED BY SIZE
-               " | if .value|type==""array"""
-                   DELIMITED BY SIZE
-               " then [.key,(.value|map(tostring)"
-                   DELIMITED BY SIZE
-               "|join("", ""))]"
-                   DELIMITED BY SIZE
-               " else [.key,(.value|tostring)] end"
-                   DELIMITED BY SIZE
-               " | @tsv'"
-                   DELIMITED BY SIZE
-               " > /tmp/showdata.tsv"
-                   DELIMITED BY SIZE
-               INTO WS-CMD WITH POINTER WS-FIELD-IDX
-           END-STRING
-           .
 
       *> Build HTML: heading, back link, field table
        BUILD-PAGE.

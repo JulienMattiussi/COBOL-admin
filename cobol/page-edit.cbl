@@ -4,7 +4,7 @@
 
        DATA DIVISION.
        WORKING-STORAGE SECTION.
-       01 WS-CMD               PIC X(2048).
+      *> (WS-CMD removed — fetch-item is now a shared module)
        01 WS-FOPEN-MODE        PIC X(4) VALUE Z"r".
        01 WS-FILE-PTR          USAGE POINTER.
        01 WS-FGETS-PTR         USAGE POINTER.
@@ -71,51 +71,11 @@
                GOBACK
            END-IF
 
-           PERFORM FETCH-ITEM
+           CALL "FETCH-ITEM" USING
+               LS-API-URL LS-RESOURCE-NAME LS-RESOURCE-ID
+           END-CALL
            PERFORM BUILD-FORM
            GOBACK.
-
-      *> Fetch current item data (same as show page)
-       FETCH-ITEM.
-           MOVE LOW-VALUE TO WS-CMD
-           MOVE 1 TO WS-FIELD-IDX
-           STRING
-               "curl -s '" DELIMITED BY SIZE
-               LS-API-URL DELIMITED BY SPACE
-               "/" DELIMITED BY SIZE
-               LS-RESOURCE-NAME DELIMITED BY SPACE
-               "/" DELIMITED BY SIZE
-               LS-RESOURCE-ID DELIMITED BY SPACE
-               "' | jq -r '" DELIMITED BY SIZE
-               INTO WS-CMD
-           END-STRING
-
-           MOVE 0 TO WS-FIELD-IDX
-           INSPECT WS-CMD TALLYING WS-FIELD-IDX
-               FOR CHARACTERS BEFORE INITIAL LOW-VALUE
-           ADD 1 TO WS-FIELD-IDX
-
-           STRING
-               "to_entries[]"
-                   DELIMITED BY SIZE
-               " | if .value|type==""array"""
-                   DELIMITED BY SIZE
-               " then [.key,(.value|map(tostring)"
-                   DELIMITED BY SIZE
-               "|join("", ""))]"
-                   DELIMITED BY SIZE
-               " else [.key,(.value|tostring)] end"
-                   DELIMITED BY SIZE
-               " | @tsv'"
-                   DELIMITED BY SIZE
-               " > /tmp/showdata.tsv"
-                   DELIMITED BY SIZE
-               INTO WS-CMD WITH POINTER WS-FIELD-IDX
-           END-STRING
-
-           CALL "SYSTEM" USING FUNCTION TRIM(WS-CMD)
-           END-CALL
-           .
 
       *> Build HTML form
        BUILD-FORM.
