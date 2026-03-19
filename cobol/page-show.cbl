@@ -13,6 +13,12 @@
        01 WS-FIELD-IDX         PIC 99 VALUE 0.
        01 WS-DATA-FILE         PIC X(256)
            VALUE Z"/tmp/showdata.tsv".
+       01 WS-FNAME-LEN         PIC 99 VALUE 0.
+       01 WS-REF-CANDIDATE     PIC X(64).
+       01 WS-REF-CHECK-IDX     PIC 99 VALUE 0.
+       01 WS-FIELD-KEY         PIC X(64).
+       01 WS-FIELD-VAL         PIC X(1024).
+       01 WS-TAB-POS           PIC 9(4) COMP-5 VALUE 0.
 
        LINKAGE SECTION.
        01 LS-HTML-BODY         PIC X(32768).
@@ -182,22 +188,83 @@
                    FOR CHARACTERS BEFORE INITIAL X"09"
 
                IF WS-FIELD-IDX > 0
+      *> Extract key and value
+                   MOVE SPACES TO WS-FIELD-KEY
+                   MOVE SPACES TO WS-FIELD-VAL
+                   MOVE WS-LINE(1:WS-FIELD-IDX)
+                       TO WS-FIELD-KEY
+                   COMPUTE WS-TAB-POS = WS-FIELD-IDX + 2
+                   MOVE FUNCTION TRIM(
+                       WS-LINE(WS-TAB-POS:) TRAILING)
+                       TO WS-FIELD-VAL
+
+      *> Write key cell
                    STRING
                        "<tr><td>" DELIMITED BY SIZE
-                       WS-LINE(1:WS-FIELD-IDX)
-                           DELIMITED BY SIZE
+                       WS-FIELD-KEY DELIMITED BY SPACE
                        "</td><td>" DELIMITED BY SIZE
                        INTO LS-HTML-BODY
                            WITH POINTER LS-HTML-LEN
                    END-STRING
-      *> Value after tab
-                   ADD 2 TO WS-FIELD-IDX
-                   STRING
-                       FUNCTION TRIM(
-                           WS-LINE(WS-FIELD-IDX:)
-                           TRAILING)
-                           DELIMITED BY SIZE
-                       "</td></tr>" DELIMITED BY SIZE
+
+      *> Check if field is a reference (ends with "Id")
+                   MOVE FUNCTION LENGTH(
+                       FUNCTION TRIM(WS-FIELD-KEY))
+                       TO WS-FNAME-LEN
+                   MOVE SPACES TO WS-REF-CANDIDATE
+                   IF WS-FNAME-LEN > 2
+                       IF WS-FIELD-KEY(
+                           WS-FNAME-LEN - 1:2) = "Id"
+                           STRING
+                               WS-FIELD-KEY(
+                                   1:WS-FNAME-LEN - 2)
+                                   DELIMITED BY SIZE
+                               "s" DELIMITED BY SIZE
+                               INTO WS-REF-CANDIDATE
+                           END-STRING
+      *> Verify resource exists
+                           PERFORM VARYING WS-REF-CHECK-IDX
+                               FROM 1 BY 1
+                               UNTIL WS-REF-CHECK-IDX >
+                                   LS-RESOURCE-COUNT
+                               IF LS-RES-NAME(
+                                   WS-REF-CHECK-IDX)
+                                   = WS-REF-CANDIDATE
+                                   EXIT PERFORM
+                               END-IF
+                           END-PERFORM
+                           IF WS-REF-CHECK-IDX >
+                               LS-RESOURCE-COUNT
+                               MOVE SPACES
+                                   TO WS-REF-CANDIDATE
+                           END-IF
+                       END-IF
+                   END-IF
+
+      *> Write value with optional link
+                   IF WS-REF-CANDIDATE NOT = SPACES
+                       STRING
+                           "<a href='/show/"
+                               DELIMITED BY SIZE
+                           WS-REF-CANDIDATE
+                               DELIMITED BY SPACE
+                           "/" DELIMITED BY SIZE
+                           WS-FIELD-VAL DELIMITED BY SPACE
+                           "'>" DELIMITED BY SIZE
+                           WS-FIELD-VAL DELIMITED BY SPACE
+                           "</a>" DELIMITED BY SIZE
+                           INTO LS-HTML-BODY
+                               WITH POINTER LS-HTML-LEN
+                       END-STRING
+                   ELSE
+                       STRING
+                           WS-FIELD-VAL DELIMITED BY SPACE
+                           INTO LS-HTML-BODY
+                               WITH POINTER LS-HTML-LEN
+                       END-STRING
+                   END-IF
+
+                   STRING "</td></tr>" DELIMITED BY SIZE
                        INTO LS-HTML-BODY
                            WITH POINTER LS-HTML-LEN
                    END-STRING

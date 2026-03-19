@@ -29,6 +29,15 @@
        01 WS-JQ-FIELDS         PIC X(512).
        01 WS-JQ-PTR            PIC 9(4) COMP-5 VALUE 0.
 
+      *> Reference detection per column
+       01 WS-COL-REF-TABLE.
+          05 WS-COL-REFS OCCURS 20 TIMES.
+             10 WS-COL-REF-RES PIC X(64).
+       01 WS-FNAME-LEN         PIC 99 VALUE 0.
+       01 WS-REF-CANDIDATE     PIC X(64).
+       01 WS-REF-CHECK-IDX     PIC 99 VALUE 0.
+       01 WS-CELL-VALUE        PIC X(256).
+
        LINKAGE SECTION.
        01 LS-HTML-BODY         PIC X(32768).
        01 LS-HTML-LEN          PIC 9(8) COMP-5.
@@ -195,15 +204,48 @@
                INTO LS-HTML-BODY WITH POINTER LS-HTML-LEN
            END-STRING
 
-      *> Find which column is "id"
+      *> Find id column and build reference map per column
            MOVE 0 TO WS-ID-COL
+           INITIALIZE WS-COL-REF-TABLE
            PERFORM VARYING WS-FIELD-IDX FROM 1 BY 1
                UNTIL WS-FIELD-IDX >
                    LS-RES-FIELD-COUNT(LS-RES-IDX)
                IF LS-RES-FIELD-NAME(LS-RES-IDX, WS-FIELD-IDX)
                    = "id"
                    MOVE WS-FIELD-IDX TO WS-ID-COL
-                   EXIT PERFORM
+               END-IF
+      *> Check if field ends with "Id" → reference
+               MOVE FUNCTION LENGTH(FUNCTION TRIM(
+                   LS-RES-FIELD-NAME(LS-RES-IDX, WS-FIELD-IDX)))
+                   TO WS-FNAME-LEN
+               IF WS-FNAME-LEN > 2
+                   IF LS-RES-FIELD-NAME(
+                       LS-RES-IDX, WS-FIELD-IDX)
+                       (WS-FNAME-LEN - 1:2) = "Id"
+      *> Strip "Id", append "s" to get resource name
+                       MOVE SPACES TO WS-REF-CANDIDATE
+                       STRING
+                           LS-RES-FIELD-NAME(
+                               LS-RES-IDX, WS-FIELD-IDX)
+                               (1:WS-FNAME-LEN - 2)
+                               DELIMITED BY SIZE
+                           "s" DELIMITED BY SIZE
+                           INTO WS-REF-CANDIDATE
+                       END-STRING
+      *> Check if this resource exists
+                       PERFORM VARYING WS-REF-CHECK-IDX
+                           FROM 1 BY 1
+                           UNTIL WS-REF-CHECK-IDX >
+                               LS-RESOURCE-COUNT
+                           IF LS-RES-NAME(WS-REF-CHECK-IDX)
+                               = WS-REF-CANDIDATE
+                               MOVE WS-REF-CANDIDATE
+                                   TO WS-COL-REF-RES(
+                                       WS-FIELD-IDX)
+                               EXIT PERFORM
+                           END-IF
+                       END-PERFORM
+                   END-IF
                END-IF
            END-PERFORM
 
@@ -319,6 +361,7 @@
                END-IF
 
       *> Second pass: write cells with links
+               MOVE 1 TO WS-COL-IDX
                MOVE 1 TO WS-CELL-START
                PERFORM VARYING WS-SCAN FROM 1 BY 1
                    UNTIL WS-SCAN > WS-LINE-LEN
@@ -327,6 +370,7 @@
                            WS-SCAN - WS-CELL-START
                        PERFORM WRITE-CELL
                        COMPUTE WS-CELL-START = WS-SCAN + 1
+                       ADD 1 TO WS-COL-IDX
                    END-IF
                END-PERFORM
       *> Last cell
@@ -347,15 +391,38 @@
                INTO LS-HTML-BODY WITH POINTER LS-HTML-LEN
            END-STRING
 
-           IF WS-ID-COL > 0
+      *> Extract cell value for link target
+           MOVE SPACES TO WS-CELL-VALUE
+           IF WS-CELL-END > 0
+               MOVE WS-DATA-LINE(WS-CELL-START:WS-CELL-END)
+                   TO WS-CELL-VALUE
+           END-IF
+
+      *> Determine link: reference field → ref resource,
+      *>                  otherwise → current resource show
+           IF WS-COL-REF-RES(WS-COL-IDX) NOT = SPACES
                STRING
-                   "<a href='/show/" DELIMITED BY SIZE
-                   LS-RESOURCE-NAME DELIMITED BY SPACE
+                   "<a class='ref-link' href='/show/"
+                       DELIMITED BY SIZE
+                   WS-COL-REF-RES(WS-COL-IDX)
+                       DELIMITED BY SPACE
                    "/" DELIMITED BY SIZE
-                   WS-ROW-ID DELIMITED BY SPACE
+                   WS-CELL-VALUE DELIMITED BY SPACE
                    "'>" DELIMITED BY SIZE
                    INTO LS-HTML-BODY WITH POINTER LS-HTML-LEN
                END-STRING
+           ELSE
+               IF WS-ID-COL > 0
+                   STRING
+                       "<a href='/show/" DELIMITED BY SIZE
+                       LS-RESOURCE-NAME DELIMITED BY SPACE
+                       "/" DELIMITED BY SIZE
+                       WS-ROW-ID DELIMITED BY SPACE
+                       "'>" DELIMITED BY SIZE
+                       INTO LS-HTML-BODY
+                           WITH POINTER LS-HTML-LEN
+                   END-STRING
+               END-IF
            END-IF
 
            IF WS-CELL-END > 0
@@ -366,10 +433,18 @@
                END-STRING
            END-IF
 
-           IF WS-ID-COL > 0
+      *> Close link
+           IF WS-COL-REF-RES(WS-COL-IDX) NOT = SPACES
                STRING "</a>" DELIMITED BY SIZE
                    INTO LS-HTML-BODY WITH POINTER LS-HTML-LEN
                END-STRING
+           ELSE
+               IF WS-ID-COL > 0
+                   STRING "</a>" DELIMITED BY SIZE
+                       INTO LS-HTML-BODY
+                           WITH POINTER LS-HTML-LEN
+                   END-STRING
+               END-IF
            END-IF
 
            STRING "</td>" DELIMITED BY SIZE

@@ -112,6 +112,27 @@ tbody tr:hover {
   cursor: pointer;
 }
 
+/* Reference links (foreign keys) */
+td a.ref-link {
+  color: #2980b9;
+  text-decoration: underline;
+  position: relative;
+}
+
+td a.ref-link:hover {
+  color: #1a5276;
+  background: #ebf5fb;
+}
+
+.show-table td a {
+  color: #2980b9;
+  text-decoration: underline;
+}
+
+.show-table td a:hover {
+  color: #1a5276;
+}
+
 /* Show page */
 .show-table {
   max-width: 600px;
