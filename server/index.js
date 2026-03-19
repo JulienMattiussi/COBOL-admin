@@ -11,37 +11,37 @@ app.use(express.json());
 
 // --- In-memory data with seed ---
 const db = {
-  authors: Array.from({ length: 25 }, (_, i) => ({
+  authors: Array.from({ length: 100 }, (_, i) => ({
     id: i + 1,
     name: `Author ${i + 1}`,
     email: `author${i + 1}@example.com`,
   })),
-  tags: Array.from({ length: 15 }, (_, i) => ({
+  tags: Array.from({ length: 100 }, (_, i) => ({
     id: i + 1,
     name: `tag-${i + 1}`,
   })),
-  posts: Array.from({ length: 30 }, (_, i) => ({
+  posts: Array.from({ length: 150 }, (_, i) => ({
     id: i + 1,
     title: `Post ${i + 1}`,
     body: `Content of post ${i + 1}.`,
-    authorId: (i % 25) + 1,
-    tagIds: [(i % 15) + 1],
-    createdAt: new Date(2025, 0, i + 1).toISOString(),
+    authorId: (i % 100) + 1,
+    tagIds: [(i % 100) + 1],
+    createdAt: new Date(2025, 0, (i % 28) + 1).toISOString(),
   })),
-  comments: Array.from({ length: 40 }, (_, i) => ({
+  comments: Array.from({ length: 200 }, (_, i) => ({
     id: i + 1,
-    postId: (i % 30) + 1,
+    postId: (i % 150) + 1,
     body: `Comment ${i + 1}`,
-    authorName: `Commenter ${i + 1}`,
-    createdAt: new Date(2025, 1, i + 1).toISOString(),
+    authorName: `Commenter ${(i % 100) + 1}`,
+    createdAt: new Date(2025, 1, (i % 28) + 1).toISOString(),
   })),
 };
 
 const counters = {
-  authors: 25,
-  tags: 15,
-  posts: 30,
-  comments: 40,
+  authors: 100,
+  tags: 100,
+  posts: 150,
+  comments: 200,
 };
 
 // --- Generic CRUD helper ---
