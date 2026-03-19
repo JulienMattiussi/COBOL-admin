@@ -8,6 +8,8 @@
        01 WS-FOPEN-MODE        PIC X(4) VALUE Z"r".
        01 WS-FILE-PTR          USAGE POINTER.
        01 WS-PATH-LEN          PIC 9(4) COMP-5 VALUE 0.
+       01 WS-SCAN              PIC 9(4) COMP-5 VALUE 0.
+       01 WS-PATH-VALID        PIC 9 VALUE 0.
 
        LINKAGE SECTION.
        01 LS-STATIC-PATH       PIC X(512).
@@ -24,6 +26,12 @@
            MOVE 0 TO LS-FOUND
            MOVE 0 TO LS-BODY-LEN
            MOVE SPACES TO LS-CONTENT-TYPE
+
+      *> Validate path: reject traversal and unsafe chars
+           PERFORM VALIDATE-PATH
+           IF WS-PATH-VALID = 0
+               GOBACK
+           END-IF
 
       *> Determine content type
            MOVE FUNCTION LENGTH(
@@ -69,3 +77,39 @@
 
            MOVE 1 TO LS-FOUND
            GOBACK.
+
+       VALIDATE-PATH.
+           MOVE 1 TO WS-PATH-VALID
+           MOVE FUNCTION LENGTH(
+               FUNCTION TRIM(LS-STATIC-PATH)) TO WS-PATH-LEN
+
+      *> Reject empty paths
+           IF WS-PATH-LEN = 0
+               MOVE 0 TO WS-PATH-VALID
+               GOBACK
+           END-IF
+
+      *> Reject paths starting with /
+           IF LS-STATIC-PATH(1:1) = "/"
+               MOVE 0 TO WS-PATH-VALID
+               GOBACK
+           END-IF
+
+      *> Reject paths containing ".."
+           PERFORM VARYING WS-SCAN FROM 1 BY 1
+               UNTIL WS-SCAN >= WS-PATH-LEN
+               IF LS-STATIC-PATH(WS-SCAN:2) = ".."
+                   MOVE 0 TO WS-PATH-VALID
+                   GOBACK
+               END-IF
+           END-PERFORM
+
+      *> Reject paths containing null bytes
+           PERFORM VARYING WS-SCAN FROM 1 BY 1
+               UNTIL WS-SCAN > WS-PATH-LEN
+               IF LS-STATIC-PATH(WS-SCAN:1) = LOW-VALUE
+                   MOVE 0 TO WS-PATH-VALID
+                   GOBACK
+               END-IF
+           END-PERFORM
+           .
