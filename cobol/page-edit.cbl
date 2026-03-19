@@ -232,9 +232,15 @@
 
        RENDER-INPUT.
       *> Map schema type to HTML input type
-      *> Use text for disabled fields (number+disabled renders
-      *> poorly in some browsers)
+      *> Detect date-time values (ISO format 20xx-...)
            MOVE "text" TO WS-INPUT-TYPE
+           IF WS-VAL-LEN >= 10
+               IF WS-LINE(WS-VAL-START:2) = "20"
+                   AND WS-LINE(WS-VAL-START + 4:1) = "-"
+                   AND WS-LINE(WS-VAL-START + 7:1) = "-"
+                   MOVE "datetime-local" TO WS-INPUT-TYPE
+               END-IF
+           END-IF
 
       *> Label
            STRING
@@ -260,9 +266,17 @@
                INTO LS-HTML-BODY WITH POINTER LS-HTML-LEN
            END-STRING
            IF WS-VAL-LEN > 0
-               MOVE WS-LINE(WS-VAL-START:WS-VAL-LEN)
-                   TO WS-ESC-INPUT
-               MOVE WS-VAL-LEN TO WS-ESC-INPUT-LEN
+      *> Truncate datetime-local to YYYY-MM-DDTHH:MM
+               IF WS-INPUT-TYPE = "datetime-local"
+                   AND WS-VAL-LEN > 16
+                   MOVE WS-LINE(WS-VAL-START:16)
+                       TO WS-ESC-INPUT
+                   MOVE 16 TO WS-ESC-INPUT-LEN
+               ELSE
+                   MOVE WS-LINE(WS-VAL-START:WS-VAL-LEN)
+                       TO WS-ESC-INPUT
+                   MOVE WS-VAL-LEN TO WS-ESC-INPUT-LEN
+               END-IF
                CALL "HTML-ESCAPE" USING
                    WS-ESC-INPUT WS-ESC-INPUT-LEN
                    WS-ESC-OUTPUT WS-ESC-OUTPUT-LEN
