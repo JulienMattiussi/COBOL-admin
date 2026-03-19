@@ -22,6 +22,8 @@
        01 WS-LINE-LEN          PIC 9(4) COMP-5 VALUE 0.
        01 WS-PAGE-STR          PIC ZZ9.
        01 WS-PERPAGE-STR       PIC ZZ9.
+       01 WS-PERPAGE-OPTION    PIC 999 VALUE 0.
+       01 WS-PERPAGE-OPT-STR   PIC ZZ9.
        01 WS-TOTAL-STR         PIC ZZZZZ9.
        01 WS-ID-COL            PIC 99 VALUE 0.
        01 WS-COL-IDX           PIC 99 VALUE 0.
@@ -191,10 +193,14 @@
                "Show " DELIMITED BY SIZE
                INTO LS-HTML-BODY WITH POINTER LS-HTML-LEN
            END-STRING
-           PERFORM BUILD-PERPAGE-LINK-10
-           PERFORM BUILD-PERPAGE-LINK-25
-           PERFORM BUILD-PERPAGE-LINK-50
-           PERFORM BUILD-PERPAGE-LINK-100
+           MOVE 10 TO WS-PERPAGE-OPTION
+           PERFORM BUILD-PERPAGE-LINK
+           MOVE 25 TO WS-PERPAGE-OPTION
+           PERFORM BUILD-PERPAGE-LINK
+           MOVE 50 TO WS-PERPAGE-OPTION
+           PERFORM BUILD-PERPAGE-LINK
+           MOVE 100 TO WS-PERPAGE-OPTION
+           PERFORM BUILD-PERPAGE-LINK
            STRING
                "</span>"
                    DELIMITED BY SIZE
@@ -453,78 +459,28 @@
            END-CALL
            .
 
-       BUILD-PERPAGE-LINK-10.
-           PERFORM BUILD-PERPAGE-LINK-COMMON-10
-           .
-       BUILD-PERPAGE-LINK-25.
-           PERFORM BUILD-PERPAGE-LINK-COMMON-25
-           .
-       BUILD-PERPAGE-LINK-50.
-           PERFORM BUILD-PERPAGE-LINK-COMMON-50
-           .
-       BUILD-PERPAGE-LINK-100.
-           PERFORM BUILD-PERPAGE-LINK-COMMON-100
-           .
-
-       BUILD-PERPAGE-LINK-COMMON-10.
-           IF LS-PER-PAGE = 10
-               STRING "<strong class='active'>10</strong>"
-                   DELIMITED BY SIZE
+       BUILD-PERPAGE-LINK.
+           MOVE WS-PERPAGE-OPTION TO WS-PERPAGE-OPT-STR
+           IF LS-PER-PAGE = WS-PERPAGE-OPTION
+               STRING
+                   "<strong class='active'>"
+                       DELIMITED BY SIZE
+                   FUNCTION TRIM(WS-PERPAGE-OPT-STR)
+                       DELIMITED BY SIZE
+                   "</strong>" DELIMITED BY SIZE
                    INTO LS-HTML-BODY WITH POINTER LS-HTML-LEN
                END-STRING
            ELSE
                STRING
                    "<a href='/list/" DELIMITED BY SIZE
                    LS-RESOURCE-NAME DELIMITED BY SPACE
-                   "?perPage=10'>10</a>" DELIMITED BY SIZE
-                   INTO LS-HTML-BODY WITH POINTER LS-HTML-LEN
-               END-STRING
-           END-IF
-           .
-
-       BUILD-PERPAGE-LINK-COMMON-25.
-           IF LS-PER-PAGE = 25
-               STRING "<strong class='active'>25</strong>"
-                   DELIMITED BY SIZE
-                   INTO LS-HTML-BODY WITH POINTER LS-HTML-LEN
-               END-STRING
-           ELSE
-               STRING
-                   "<a href='/list/" DELIMITED BY SIZE
-                   LS-RESOURCE-NAME DELIMITED BY SPACE
-                   "?perPage=25'>25</a>" DELIMITED BY SIZE
-                   INTO LS-HTML-BODY WITH POINTER LS-HTML-LEN
-               END-STRING
-           END-IF
-           .
-
-       BUILD-PERPAGE-LINK-COMMON-50.
-           IF LS-PER-PAGE = 50
-               STRING "<strong class='active'>50</strong>"
-                   DELIMITED BY SIZE
-                   INTO LS-HTML-BODY WITH POINTER LS-HTML-LEN
-               END-STRING
-           ELSE
-               STRING
-                   "<a href='/list/" DELIMITED BY SIZE
-                   LS-RESOURCE-NAME DELIMITED BY SPACE
-                   "?perPage=50'>50</a>" DELIMITED BY SIZE
-                   INTO LS-HTML-BODY WITH POINTER LS-HTML-LEN
-               END-STRING
-           END-IF
-           .
-
-       BUILD-PERPAGE-LINK-COMMON-100.
-           IF LS-PER-PAGE = 100
-               STRING "<strong class='active'>100</strong>"
-                   DELIMITED BY SIZE
-                   INTO LS-HTML-BODY WITH POINTER LS-HTML-LEN
-               END-STRING
-           ELSE
-               STRING
-                   "<a href='/list/" DELIMITED BY SIZE
-                   LS-RESOURCE-NAME DELIMITED BY SPACE
-                   "?perPage=100'>100</a>" DELIMITED BY SIZE
+                   "?perPage=" DELIMITED BY SIZE
+                   FUNCTION TRIM(WS-PERPAGE-OPT-STR)
+                       DELIMITED BY SIZE
+                   "'>" DELIMITED BY SIZE
+                   FUNCTION TRIM(WS-PERPAGE-OPT-STR)
+                       DELIMITED BY SIZE
+                   "</a>" DELIMITED BY SIZE
                    INTO LS-HTML-BODY WITH POINTER LS-HTML-LEN
                END-STRING
            END-IF
