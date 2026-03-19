@@ -105,7 +105,13 @@
                "' | jq -r '.[] | "
                    DELIMITED BY SIZE
                WS-JQ-FIELDS DELIMITED BY LOW-VALUE
-               " | map(tostring) | @tsv' > /tmp/listdata.tsv"
+               " | map(if type==""array"" then"
+                   DELIMITED BY SIZE
+               " map(tostring)|join("", "")"
+                   DELIMITED BY SIZE
+               " else tostring end)"
+                   DELIMITED BY SIZE
+               " | @tsv' > /tmp/listdata.tsv"
                    DELIMITED BY SIZE
                INTO WS-CMD
            END-STRING
