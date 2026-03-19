@@ -6,4 +6,6 @@
              10 WS-RES-FIELD-COUNT PIC 99 VALUE 0.
              10 WS-RES-FIELDS OCCURS 20 TIMES.
                 15 WS-RES-FIELD-NAME PIC X(64).
+                15 WS-RES-FIELD-TYPE PIC X(16).
+                15 WS-RES-FIELD-EDIT PIC 9.
        01 WS-RES-IDX           PIC 99 VALUE 0.

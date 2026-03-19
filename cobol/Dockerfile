@@ -1,7 +1,7 @@
 FROM ubuntu:24.04
 
 RUN apt-get update && \
-    apt-get install -y gnucobol4 curl jq && \
+    apt-get install -y gnucobol4 curl jq python3 && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -21,6 +21,8 @@ RUN cobc -free -c -I copybooks page-list.cbl
 RUN cobc -free -c -I copybooks page-404.cbl
 RUN cobc -free -c -I copybooks pagination.cbl
 RUN cobc -free -c -I copybooks page-show.cbl
+RUN cobc -free -c -I copybooks page-edit.cbl
+RUN cobc -free -c -I copybooks form-submit.cbl
 RUN cobc -free -c -I copybooks serve-static.cbl
 
 # Compile and link main with all modules
@@ -35,6 +37,8 @@ RUN cobc -free -x -I copybooks -o cobol-admin \
     page-404.o \
     pagination.o \
     page-show.o \
+    page-edit.o \
+    form-submit.o \
     serve-static.o
 
 # Run tests at build time

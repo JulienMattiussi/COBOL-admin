@@ -26,6 +26,8 @@
              10 LS-RES-FIELD-COUNT PIC 99.
              10 LS-RES-FIELDS OCCURS 20 TIMES.
                 15 LS-RES-FIELD-NAME PIC X(64).
+                15 LS-RES-FIELD-TYPE PIC X(16).
+                15 LS-RES-FIELD-EDIT PIC 9.
        01 LS-PAGE              PIC 999.
        01 LS-PER-PAGE          PIC 999.
        01 LS-ROUTE-ID          PIC X(10).
@@ -128,6 +130,38 @@
                                IF LS-RES-NAME(WS-IDX)
                                    = LS-ROUTE-RESOURCE
                                    MOVE "SHOW"
+                                       TO LS-ROUTE-TYPE
+                                   EXIT PERFORM
+                               END-IF
+                           END-PERFORM
+                       END-IF
+                   END-IF
+               END-IF
+      *> Match /edit/{resource}/{id}
+               IF WS-CLEAN-LEN > 6
+                   IF WS-CLEAN-PATH(1:6) = "/edit/"
+                       MOVE 0 TO WS-SLASH-POS
+                       PERFORM VARYING WS-SCAN FROM 7 BY 1
+                           UNTIL WS-SCAN > WS-CLEAN-LEN
+                           IF WS-CLEAN-PATH(WS-SCAN:1) = "/"
+                               MOVE WS-SCAN TO WS-SLASH-POS
+                               EXIT PERFORM
+                           END-IF
+                       END-PERFORM
+                       IF WS-SLASH-POS > 7
+                           MOVE WS-CLEAN-PATH(
+                               7:WS-SLASH-POS - 7)
+                               TO LS-ROUTE-RESOURCE
+                           MOVE WS-CLEAN-PATH(
+                               WS-SLASH-POS + 1:
+                               WS-CLEAN-LEN - WS-SLASH-POS)
+                               TO LS-ROUTE-ID
+                           PERFORM VARYING WS-IDX FROM 1 BY 1
+                               UNTIL WS-IDX >
+                                   LS-RESOURCE-COUNT
+                               IF LS-RES-NAME(WS-IDX)
+                                   = LS-ROUTE-RESOURCE
+                                   MOVE "EDIT"
                                        TO LS-ROUTE-TYPE
                                    EXIT PERFORM
                                END-IF

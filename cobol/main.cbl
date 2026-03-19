@@ -131,7 +131,7 @@
       *> HANDLE-REQUEST: Read, route, build page, respond
       *>
        HANDLE-REQUEST.
-           MOVE SPACES TO REQUEST-BUFFER
+           MOVE LOW-VALUE TO REQUEST-BUFFER
            MOVE LOW-VALUE TO RESPONSE-BUFFER
            MOVE 0 TO RESPONSE-LEN
 
@@ -146,12 +146,15 @@
                GOBACK
            END-IF
 
-      *> Parse request path
+      *> Parse request
            CALL "HTTP-PARSE" USING
-               REQUEST-BUFFER WS-REQUEST-PATH WS-PATH-LEN
+               REQUEST-BUFFER WS-REQUEST-METHOD
+               WS-REQUEST-PATH WS-PATH-LEN
+               WS-REQUEST-BODY WS-BODY-LEN
            END-CALL
 
            DISPLAY "Request #" WS-REQUEST-COUNT " "
+               FUNCTION TRIM(WS-REQUEST-METHOD) " "
                FUNCTION TRIM(WS-REQUEST-PATH)
 
       *> Route the request
@@ -162,6 +165,26 @@
                WS-PAGE WS-PER-PAGE
                WS-ROUTE-ID WS-STATIC-PATH
            END-CALL
+
+      *> Handle POST on edit: submit form and redirect
+           IF ROUTE-EDIT AND
+               FUNCTION TRIM(WS-REQUEST-METHOD) = "POST"
+               PERFORM VARYING WS-MATCHED-RES-IDX
+                   FROM 1 BY 1
+                   UNTIL WS-MATCHED-RES-IDX >
+                       WS-RESOURCE-COUNT
+                   IF WS-RES-NAME(WS-MATCHED-RES-IDX)
+                       = WS-ROUTE-RESOURCE
+                       EXIT PERFORM
+                   END-IF
+               END-PERFORM
+               CALL "FORM-SUBMIT" USING
+                   API-BASE-URL WS-ROUTE-RESOURCE
+                   WS-ROUTE-ID
+                   WS-REQUEST-BODY WS-BODY-LEN
+               END-CALL
+               PERFORM SEND-REDIRECT
+           ELSE
 
       *> Handle static files separately
            IF ROUTE-STATIC
@@ -225,6 +248,22 @@
                            API-BASE-URL
                            WS-RESOURCE-TABLE
                            WS-MATCHED-RES-IDX
+                   WHEN ROUTE-EDIT
+                       PERFORM VARYING WS-MATCHED-RES-IDX
+                           FROM 1 BY 1
+                           UNTIL WS-MATCHED-RES-IDX >
+                               WS-RESOURCE-COUNT
+                           IF WS-RES-NAME(WS-MATCHED-RES-IDX)
+                               = WS-ROUTE-RESOURCE
+                               EXIT PERFORM
+                           END-IF
+                       END-PERFORM
+                       CALL "PAGE-EDIT" USING
+                           HTML-BODY HTML-LEN
+                           WS-ROUTE-RESOURCE WS-ROUTE-ID
+                           API-BASE-URL
+                           WS-RESOURCE-TABLE
+                           WS-MATCHED-RES-IDX
                    WHEN ROUTE-NOT-FOUND
                        CALL "PAGE-404" USING
                            HTML-BODY HTML-LEN
@@ -239,10 +278,42 @@
                SUBTRACT 1 FROM HTML-LEN
                PERFORM SEND-RESPONSE
            END-IF
+           END-IF
            .
 
       *>
       *> SEND-STATIC-RESPONSE: Send static file with content-type
+      *>
+       SEND-REDIRECT.
+           MOVE LOW-VALUE TO RESPONSE-BUFFER
+
+           STRING
+               "HTTP/1.1 303 See Other" DELIMITED BY SIZE
+               WS-CRLF DELIMITED BY SIZE
+               "Location: /show/" DELIMITED BY SIZE
+               WS-ROUTE-RESOURCE DELIMITED BY SPACE
+               "/" DELIMITED BY SIZE
+               WS-ROUTE-ID DELIMITED BY SPACE
+               WS-CRLF DELIMITED BY SIZE
+               "Connection: close" DELIMITED BY SIZE
+               WS-CRLF DELIMITED BY SIZE
+               WS-CRLF DELIMITED BY SIZE
+               INTO RESPONSE-BUFFER
+           END-STRING
+
+           MOVE 0 TO RESPONSE-LEN
+           INSPECT RESPONSE-BUFFER TALLYING RESPONSE-LEN
+               FOR CHARACTERS BEFORE INITIAL LOW-VALUE
+
+           CALL "send" USING
+               BY VALUE CLIENT-SOCKET
+               BY REFERENCE RESPONSE-BUFFER
+               BY VALUE RESPONSE-LEN
+               BY VALUE 0
+               RETURNING BYTES-SENT
+           END-CALL
+           .
+
       *>
        SEND-STATIC-RESPONSE.
            MOVE LOW-VALUE TO RESPONSE-BUFFER

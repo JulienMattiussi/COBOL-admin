@@ -20,6 +20,8 @@ working-storage section.
       10 ws-res-field-count pic 99.
       10 ws-res-fields occurs 20 times.
          15 ws-res-field-name pic x(64).
+         15 ws-res-field-type pic x(16).
+         15 ws-res-field-edit pic 9.
 
 procedure division.
 

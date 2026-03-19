@@ -16,6 +16,8 @@
              10 LS-RES-FIELD-COUNT PIC 99.
              10 LS-RES-FIELDS OCCURS 20 TIMES.
                 15 LS-RES-FIELD-NAME PIC X(64).
+                15 LS-RES-FIELD-TYPE PIC X(16).
+                15 LS-RES-FIELD-EDIT PIC 9.
        01 LS-ACTION            PIC X(5).
 
        PROCEDURE DIVISION USING

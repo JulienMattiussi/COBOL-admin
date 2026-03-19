@@ -33,6 +33,8 @@
              10 LS-RES-FIELD-COUNT PIC 99.
              10 LS-RES-FIELDS OCCURS 20 TIMES.
                 15 LS-RES-FIELD-NAME PIC X(64).
+                15 LS-RES-FIELD-TYPE PIC X(16).
+                15 LS-RES-FIELD-EDIT PIC 9.
        01 LS-RES-IDX           PIC 99.
 
        PROCEDURE DIVISION USING
@@ -124,14 +126,22 @@
        BUILD-PAGE.
       *> Heading + back link
            STRING
-               "<h1>" DELIMITED BY SIZE
+               "<div class='show-header'>"
+                   DELIMITED BY SIZE
+               "<div><h1>" DELIMITED BY SIZE
                LS-RESOURCE-NAME DELIMITED BY SPACE
                " #" DELIMITED BY SIZE
                LS-RESOURCE-ID DELIMITED BY SPACE
                "</h1>" DELIMITED BY SIZE
-               "<p><a href='/list/" DELIMITED BY SIZE
+               "<a href='/list/" DELIMITED BY SIZE
                LS-RESOURCE-NAME DELIMITED BY SPACE
-               "'>Back to list</a></p>" DELIMITED BY SIZE
+               "'>Back to list</a></div>" DELIMITED BY SIZE
+               "<a class='btn' href='/edit/"
+                   DELIMITED BY SIZE
+               LS-RESOURCE-NAME DELIMITED BY SPACE
+               "/" DELIMITED BY SIZE
+               LS-RESOURCE-ID DELIMITED BY SPACE
+               "'>Edit</a></div>" DELIMITED BY SIZE
                INTO LS-HTML-BODY WITH POINTER LS-HTML-LEN
            END-STRING
 
