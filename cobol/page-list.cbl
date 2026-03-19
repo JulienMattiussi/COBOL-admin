@@ -20,11 +20,12 @@
        01 WS-CELL-END          PIC 9(4) COMP-5 VALUE 0.
        01 WS-SCAN              PIC 9(4) COMP-5 VALUE 0.
        01 WS-LINE-LEN          PIC 9(4) COMP-5 VALUE 0.
-       01 WS-PAGE-STR          PIC X(5).
-       01 WS-PERPAGE-STR       PIC X(5).
+       01 WS-PAGE-STR          PIC ZZ9.
+       01 WS-PERPAGE-STR       PIC ZZ9.
        01 WS-TOTAL-PAGES       PIC 999 VALUE 0.
        01 WS-PAGE-IDX          PIC 999 VALUE 0.
-       01 WS-PAGE-IDX-STR      PIC X(5).
+       01 WS-PAGE-IDX-STR      PIC ZZ9.
+       01 WS-TOTAL-STR         PIC ZZZZZ9.
        01 WS-JQ-FIELDS         PIC X(512).
        01 WS-JQ-PTR            PIC 9(4) COMP-5 VALUE 0.
 
@@ -96,13 +97,15 @@
                "/" DELIMITED BY SIZE
                LS-RESOURCE-NAME DELIMITED BY SPACE
                "?page=" DELIMITED BY SIZE
-               WS-PAGE-STR DELIMITED BY SPACE
+               FUNCTION TRIM(WS-PAGE-STR)
+                       DELIMITED BY SIZE
                "&perPage=" DELIMITED BY SIZE
-               WS-PERPAGE-STR DELIMITED BY SPACE
+               FUNCTION TRIM(WS-PERPAGE-STR)
+                       DELIMITED BY SIZE
                "' | jq -r '.[] | "
                    DELIMITED BY SIZE
                WS-JQ-FIELDS DELIMITED BY LOW-VALUE
-               " | @tsv' > /tmp/listdata.tsv"
+               " | map(tostring) | @tsv' > /tmp/listdata.tsv"
                    DELIMITED BY SIZE
                INTO WS-CMD
            END-STRING
@@ -174,9 +177,10 @@
                    DELIMITED BY SIZE
                INTO LS-HTML-BODY WITH POINTER LS-HTML-LEN
            END-STRING
-           MOVE LS-TOTAL-COUNT TO WS-PAGE-STR
+           MOVE LS-TOTAL-COUNT TO WS-TOTAL-STR
            STRING
-               WS-PAGE-STR DELIMITED BY SPACE
+               FUNCTION TRIM(WS-TOTAL-STR)
+                   DELIMITED BY SIZE
                " total</span></div>" DELIMITED BY SIZE
                INTO LS-HTML-BODY WITH POINTER LS-HTML-LEN
            END-STRING
@@ -342,7 +346,8 @@
                            DELIMITED BY SIZE
                        "border-radius:4px;'>"
                            DELIMITED BY SIZE
-                       WS-PAGE-IDX-STR DELIMITED BY SPACE
+                       FUNCTION TRIM(WS-PAGE-IDX-STR)
+                       DELIMITED BY SIZE
                        "</span>" DELIMITED BY SIZE
                        INTO LS-HTML-BODY
                            WITH POINTER LS-HTML-LEN
@@ -352,9 +357,11 @@
                        "<a href='/list/" DELIMITED BY SIZE
                        LS-RESOURCE-NAME DELIMITED BY SPACE
                        "?page=" DELIMITED BY SIZE
-                       WS-PAGE-IDX-STR DELIMITED BY SPACE
+                       FUNCTION TRIM(WS-PAGE-IDX-STR)
+                       DELIMITED BY SIZE
                        "&perPage=" DELIMITED BY SIZE
-                       WS-PERPAGE-STR DELIMITED BY SPACE
+                       FUNCTION TRIM(WS-PERPAGE-STR)
+                       DELIMITED BY SIZE
                        "' style='padding:6px 12px;"
                            DELIMITED BY SIZE
                        "border:1px solid #ddd;"
@@ -365,7 +372,8 @@
                            DELIMITED BY SIZE
                        "color:#2c3e50;'>"
                            DELIMITED BY SIZE
-                       WS-PAGE-IDX-STR DELIMITED BY SPACE
+                       FUNCTION TRIM(WS-PAGE-IDX-STR)
+                       DELIMITED BY SIZE
                        "</a>" DELIMITED BY SIZE
                        INTO LS-HTML-BODY
                            WITH POINTER LS-HTML-LEN
