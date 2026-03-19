@@ -265,7 +265,6 @@
 
        SEND-REDIRECT.
            MOVE LOW-VALUE TO RESPONSE-BUFFER
-
            STRING
                "HTTP/1.1 303 See Other" DELIMITED BY SIZE
                WS-CRLF DELIMITED BY SIZE
@@ -279,25 +278,15 @@
                WS-CRLF DELIMITED BY SIZE
                INTO RESPONSE-BUFFER
            END-STRING
-
            MOVE 0 TO RESPONSE-LEN
            INSPECT RESPONSE-BUFFER TALLYING RESPONSE-LEN
                FOR CHARACTERS BEFORE INITIAL LOW-VALUE
-
-           CALL "send" USING
-               BY VALUE CLIENT-SOCKET
-               BY REFERENCE RESPONSE-BUFFER
-               BY VALUE RESPONSE-LEN
-               BY VALUE 0
-               RETURNING BYTES-SENT
-           END-CALL
+           PERFORM SEND-BUFFER
            .
 
-      *>
        SEND-STATIC-RESPONSE.
            MOVE LOW-VALUE TO RESPONSE-BUFFER
            MOVE WS-STATIC-LEN TO WS-LEN-STR
-
            STRING
                "HTTP/1.1 200 OK" DELIMITED BY SIZE
                WS-CRLF DELIMITED BY SIZE
@@ -312,44 +301,19 @@
                WS-CRLF DELIMITED BY SIZE
                INTO RESPONSE-BUFFER
            END-STRING
-
            MOVE 0 TO RESPONSE-LEN
            INSPECT RESPONSE-BUFFER TALLYING RESPONSE-LEN
                FOR CHARACTERS BEFORE INITIAL LOW-VALUE
-
            MOVE WS-STATIC-BODY(1:WS-STATIC-LEN)
                TO RESPONSE-BUFFER(RESPONSE-LEN + 1:
                    WS-STATIC-LEN)
            ADD WS-STATIC-LEN TO RESPONSE-LEN
-
-           MOVE 0 TO WS-SEND-OFFSET
-           MOVE RESPONSE-LEN TO WS-SEND-REMAINING
-
-           PERFORM UNTIL WS-SEND-REMAINING <= 0
-               CALL "send" USING
-                   BY VALUE CLIENT-SOCKET
-                   BY REFERENCE
-                       RESPONSE-BUFFER(WS-SEND-OFFSET + 1:
-                           WS-SEND-REMAINING)
-                   BY VALUE WS-SEND-REMAINING
-                   BY VALUE 0
-                   RETURNING BYTES-SENT
-               END-CALL
-               IF BYTES-SENT <= 0
-                   EXIT PERFORM
-               END-IF
-               ADD BYTES-SENT TO WS-SEND-OFFSET
-               SUBTRACT BYTES-SENT FROM WS-SEND-REMAINING
-           END-PERFORM
+           PERFORM SEND-BUFFER
            .
 
-      *>
-      *> SEND-RESPONSE: Build HTTP headers and send
-      *>
        SEND-RESPONSE.
            MOVE LOW-VALUE TO RESPONSE-BUFFER
            MOVE HTML-LEN TO WS-LEN-STR
-
            STRING
                "HTTP/1.1 200 OK" DELIMITED BY SIZE
                WS-CRLF DELIMITED BY SIZE
@@ -364,18 +328,19 @@
                WS-CRLF DELIMITED BY SIZE
                INTO RESPONSE-BUFFER
            END-STRING
-
            MOVE 0 TO RESPONSE-LEN
            INSPECT RESPONSE-BUFFER TALLYING RESPONSE-LEN
                FOR CHARACTERS BEFORE INITIAL LOW-VALUE
-
            MOVE HTML-BODY(1:HTML-LEN)
                TO RESPONSE-BUFFER(RESPONSE-LEN + 1:HTML-LEN)
            ADD HTML-LEN TO RESPONSE-LEN
+           PERFORM SEND-BUFFER
+           .
 
+      *> Shared send loop — sends RESPONSE-BUFFER(1:RESPONSE-LEN)
+       SEND-BUFFER.
            MOVE 0 TO WS-SEND-OFFSET
            MOVE RESPONSE-LEN TO WS-SEND-REMAINING
-
            PERFORM UNTIL WS-SEND-REMAINING <= 0
                CALL "send" USING
                    BY VALUE CLIENT-SOCKET
