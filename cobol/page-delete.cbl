@@ -39,7 +39,7 @@
                "<button type='submit' class='btn btn-danger'>"
                    DELIMITED BY SIZE
                "Delete</button>" DELIMITED BY SIZE
-               "<a href='/show/" DELIMITED BY SIZE
+               "<a href='/edit/" DELIMITED BY SIZE
                LS-RESOURCE-NAME DELIMITED BY SPACE
                "/" DELIMITED BY SIZE
                LS-RESOURCE-ID DELIMITED BY SPACE
