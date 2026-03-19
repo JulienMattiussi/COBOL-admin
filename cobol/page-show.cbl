@@ -13,9 +13,7 @@
        01 WS-FIELD-IDX         PIC 99 VALUE 0.
        01 WS-DATA-FILE         PIC X(256)
            VALUE Z"/tmp/showdata.tsv".
-       01 WS-FNAME-LEN         PIC 99 VALUE 0.
-       01 WS-REF-CANDIDATE     PIC X(64).
-       01 WS-REF-CHECK-IDX     PIC 99 VALUE 0.
+       01 WS-REF-RESULT        PIC X(64).
        01 WS-FIELD-KEY         PIC X(64).
        01 WS-TAB-POS           PIC 9(4) COMP-5 VALUE 0.
        01 WS-VAL-START         PIC 9(4) COMP-5 VALUE 0.
@@ -182,39 +180,12 @@
                            WITH POINTER LS-HTML-LEN
                    END-STRING
 
-      *> Check if field is a reference (ends with "Id")
-                   MOVE FUNCTION LENGTH(
-                       FUNCTION TRIM(WS-FIELD-KEY))
-                       TO WS-FNAME-LEN
-                   MOVE SPACES TO WS-REF-CANDIDATE
-                   IF WS-FNAME-LEN > 2
-                       IF WS-FIELD-KEY(
-                           WS-FNAME-LEN - 1:2) = "Id"
-                           STRING
-                               WS-FIELD-KEY(
-                                   1:WS-FNAME-LEN - 2)
-                                   DELIMITED BY SIZE
-                               "s" DELIMITED BY SIZE
-                               INTO WS-REF-CANDIDATE
-                           END-STRING
-      *> Verify resource exists
-                           PERFORM VARYING WS-REF-CHECK-IDX
-                               FROM 1 BY 1
-                               UNTIL WS-REF-CHECK-IDX >
-                                   LS-RESOURCE-COUNT
-                               IF LS-RES-NAME(
-                                   WS-REF-CHECK-IDX)
-                                   = WS-REF-CANDIDATE
-                                   EXIT PERFORM
-                               END-IF
-                           END-PERFORM
-                           IF WS-REF-CHECK-IDX >
-                               LS-RESOURCE-COUNT
-                               MOVE SPACES
-                                   TO WS-REF-CANDIDATE
-                           END-IF
-                       END-IF
-                   END-IF
+      *> Check if field is a reference
+                   CALL "REF-DETECT" USING
+                       WS-FIELD-KEY
+                       LS-RESOURCE-TABLE
+                       WS-REF-RESULT
+                   END-CALL
 
       *> Escape value for display
                    IF WS-VAL-LEN > 0
@@ -230,12 +201,12 @@
                    END-IF
 
       *> Write value with optional link
-                   IF WS-REF-CANDIDATE NOT = SPACES
+                   IF WS-REF-RESULT NOT = SPACES
                        AND WS-VAL-LEN > 0
                        STRING
                            "<a href='/show/"
                                DELIMITED BY SIZE
-                           WS-REF-CANDIDATE
+                           WS-REF-RESULT
                                DELIMITED BY SPACE
                            "/" DELIMITED BY SIZE
                            WS-LINE(WS-VAL-START:WS-VAL-LEN)

@@ -9,7 +9,7 @@
 ## High (Code Duplication / Maintainability)
 
 - [x] Extract shared `fetch-item.cbl` module — FETCH-ITEM logic is duplicated between page-show.cbl and page-edit.cbl
-- [ ] Extract shared `ref-detect.cbl` module — reference detection ("ends with Id, pluralize, check resource table") is duplicated between page-list.cbl and page-show.cbl
+- [x] Extract shared `ref-detect.cbl` module — reference detection ("ends with Id, pluralize, check resource table") is duplicated between page-list.cbl and page-show.cbl
 - [ ] Extract resource lookup loop in main.cbl to a shared paragraph — the "find WS-MATCHED-RES-IDX" block is repeated 4 times
 - [ ] Consolidate 3 near-identical SEND-* paragraphs in main.cbl (SEND-RESPONSE, SEND-STATIC-RESPONSE, SEND-REDIRECT) — extract shared send loop
 - [ ] Consolidate 4 identical BUILD-PERPAGE-LINK-COMMON-* paragraphs in page-list.cbl into a single parameterized paragraph

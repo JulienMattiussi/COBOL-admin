@@ -17,6 +17,7 @@ cobc -free -c -I copybooks serve-static.cbl
 cobc -free -c -I copybooks html-escape.cbl
 cobc -free -c -I copybooks shell-sanitize.cbl
 cobc -free -c -I copybooks fetch-item.cbl
+cobc -free -c -I copybooks ref-detect.cbl
 
 echo "=== Running tests ==="
 cobc -x -free -debug -I copybooks \
@@ -41,4 +42,5 @@ cobc -x -free -debug -I copybooks \
     html-escape.o \
     shell-sanitize.o \
     fetch-item.o \
+    ref-detect.o \
     --job='test-http-parse test-router test-pages test-html-escape test-shell-sanitize'

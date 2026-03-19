@@ -39,9 +39,7 @@
        01 WS-COL-REF-TABLE.
           05 WS-COL-REFS OCCURS 20 TIMES.
              10 WS-COL-REF-RES PIC X(64).
-       01 WS-FNAME-LEN         PIC 99 VALUE 0.
-       01 WS-REF-CANDIDATE     PIC X(64).
-       01 WS-REF-CHECK-IDX     PIC 99 VALUE 0.
+       01 WS-REF-RESULT        PIC X(64).
        01 WS-CELL-VALUE        PIC X(256).
 
        LINKAGE SECTION.
@@ -222,38 +220,15 @@
                    = "id"
                    MOVE WS-FIELD-IDX TO WS-ID-COL
                END-IF
-      *> Check if field ends with "Id" → reference
-               MOVE FUNCTION LENGTH(FUNCTION TRIM(
-                   LS-RES-FIELD-NAME(LS-RES-IDX, WS-FIELD-IDX)))
-                   TO WS-FNAME-LEN
-               IF WS-FNAME-LEN > 2
-                   IF LS-RES-FIELD-NAME(
-                       LS-RES-IDX, WS-FIELD-IDX)
-                       (WS-FNAME-LEN - 1:2) = "Id"
-      *> Strip "Id", append "s" to get resource name
-                       MOVE SPACES TO WS-REF-CANDIDATE
-                       STRING
-                           LS-RES-FIELD-NAME(
-                               LS-RES-IDX, WS-FIELD-IDX)
-                               (1:WS-FNAME-LEN - 2)
-                               DELIMITED BY SIZE
-                           "s" DELIMITED BY SIZE
-                           INTO WS-REF-CANDIDATE
-                       END-STRING
-      *> Check if this resource exists
-                       PERFORM VARYING WS-REF-CHECK-IDX
-                           FROM 1 BY 1
-                           UNTIL WS-REF-CHECK-IDX >
-                               LS-RESOURCE-COUNT
-                           IF LS-RES-NAME(WS-REF-CHECK-IDX)
-                               = WS-REF-CANDIDATE
-                               MOVE WS-REF-CANDIDATE
-                                   TO WS-COL-REF-RES(
-                                       WS-FIELD-IDX)
-                               EXIT PERFORM
-                           END-IF
-                       END-PERFORM
-                   END-IF
+      *> Check if field is a reference
+               CALL "REF-DETECT" USING
+                   LS-RES-FIELD-NAME(LS-RES-IDX, WS-FIELD-IDX)
+                   LS-RESOURCE-TABLE
+                   WS-REF-RESULT
+               END-CALL
+               IF WS-REF-RESULT NOT = SPACES
+                   MOVE WS-REF-RESULT
+                       TO WS-COL-REF-RES(WS-FIELD-IDX)
                END-IF
            END-PERFORM
 

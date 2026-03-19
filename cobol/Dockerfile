@@ -28,6 +28,7 @@ RUN cobc -free -c -I copybooks serve-static.cbl
 RUN cobc -free -c -I copybooks html-escape.cbl
 RUN cobc -free -c -I copybooks shell-sanitize.cbl
 RUN cobc -free -c -I copybooks fetch-item.cbl
+RUN cobc -free -c -I copybooks ref-detect.cbl
 
 # Compile and link main with all modules
 RUN cobc -free -x -I copybooks -o cobol-admin \
@@ -47,7 +48,8 @@ RUN cobc -free -x -I copybooks -o cobol-admin \
     serve-static.o \
     html-escape.o \
     shell-sanitize.o \
-    fetch-item.o
+    fetch-item.o \
+    ref-detect.o
 
 # Run tests at build time
 RUN chmod +x run-tests.sh && ./run-tests.sh
