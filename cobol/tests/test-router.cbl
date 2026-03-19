@@ -9,10 +9,15 @@ working-storage section.
 01 ws-path-len          pic 9(4) comp-5.
 01 ws-route-type        pic x(10).
 01 ws-route-resource    pic x(64).
+01 ws-page             pic 999.
+01 ws-per-page         pic 999.
 01 ws-resource-table.
    05 ws-resource-count pic 99 value 3.
    05 ws-resources occurs 20 times.
       10 ws-res-name    pic x(64).
+      10 ws-res-field-count pic 99.
+      10 ws-res-fields occurs 20 times.
+         15 ws-res-field-name pic x(64).
 
 procedure division.
 
@@ -36,6 +41,7 @@ test-home-route section.
         ws-request-path ws-path-len
         ws-route-type ws-route-resource
         ws-resource-table
+        ws-page ws-per-page
     end-call
     call "assert-equals" using "HOME", ws-route-type(1:4).
 
@@ -47,6 +53,7 @@ test-list-valid section.
         ws-request-path ws-path-len
         ws-route-type ws-route-resource
         ws-resource-table
+        ws-page ws-per-page
     end-call
     call "assert-equals" using "LIST", ws-route-type(1:4).
     call "assert-equals" using "authors", ws-route-resource(1:7).
@@ -59,6 +66,7 @@ test-list-invalid section.
         ws-request-path ws-path-len
         ws-route-type ws-route-resource
         ws-resource-table
+        ws-page ws-per-page
     end-call
     call "assert-equals" using "NOTFOUND", ws-route-type(1:8).
 
@@ -70,6 +78,7 @@ test-unknown-path section.
         ws-request-path ws-path-len
         ws-route-type ws-route-resource
         ws-resource-table
+        ws-page ws-per-page
     end-call
     call "assert-equals" using "NOTFOUND", ws-route-type(1:8).
 
@@ -81,6 +90,7 @@ test-list-second-resource section.
         ws-request-path ws-path-len
         ws-route-type ws-route-resource
         ws-resource-table
+        ws-page ws-per-page
     end-call
     call "assert-equals" using "LIST", ws-route-type(1:4).
     call "assert-equals" using "posts", ws-route-resource(1:5).

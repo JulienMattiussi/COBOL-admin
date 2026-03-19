@@ -13,6 +13,9 @@
           05 LS-RESOURCE-COUNT PIC 99.
           05 LS-RESOURCES OCCURS 20 TIMES.
              10 LS-RES-NAME    PIC X(64).
+             10 LS-RES-FIELD-COUNT PIC 99.
+             10 LS-RES-FIELDS OCCURS 20 TIMES.
+                15 LS-RES-FIELD-NAME PIC X(64).
        01 LS-ACTION            PIC X(5).
 
        PROCEDURE DIVISION USING

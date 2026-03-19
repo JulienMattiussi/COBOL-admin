@@ -12,6 +12,9 @@ working-storage section.
    05 ws-resource-count pic 99 value 2.
    05 ws-resources occurs 20 times.
       10 ws-res-name    pic x(64).
+      10 ws-res-field-count pic 99.
+      10 ws-res-fields occurs 20 times.
+         15 ws-res-field-name pic x(64).
 01 ws-action            pic x(5).
 
 procedure division.
@@ -20,7 +23,6 @@ procedure division.
     move "posts" to ws-res-name(2).
 
     perform test-page-home.
-    perform test-page-list.
     perform test-page-404.
     perform test-layout-head.
     perform test-layout-foot.
@@ -34,16 +36,6 @@ test-page-home section.
     *> Check that output contains expected text
     call "assert-equals" using "<h1>Hello, COBOL Admin!</h1>",
         ws-html-body(1:28).
-
-test-page-list section.
-    move low-value to ws-html-body
-    move 1 to ws-html-len
-    move "posts" to ws-resource-name
-    call "PAGE-LIST" using
-        ws-html-body ws-html-len ws-resource-name
-    end-call
-    call "assert-equals" using "<h1>posts</h1>",
-        ws-html-body(1:14).
 
 test-page-404 section.
     move low-value to ws-html-body

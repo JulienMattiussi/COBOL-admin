@@ -4,3 +4,8 @@
           88 ROUTE-LIST        VALUE "LIST".
           88 ROUTE-NOT-FOUND   VALUE "NOTFOUND".
        01 WS-ROUTE-RESOURCE    PIC X(64).
+
+      *> Pagination
+       01 WS-PAGE              PIC 999 VALUE 1.
+       01 WS-PER-PAGE          PIC 999 VALUE 10.
+       01 WS-TOTAL-COUNT       PIC 99999 VALUE 0.

@@ -1,10 +1,17 @@
-      *> Matches a request path to a route type
+      *> Matches a request path to a route type, extracts query params
        IDENTIFICATION DIVISION.
        PROGRAM-ID. ROUTER.
 
        DATA DIVISION.
        WORKING-STORAGE SECTION.
        01 WS-IDX               PIC 99 VALUE 0.
+       01 WS-QMARK-POS         PIC 9(4) COMP-5 VALUE 0.
+       01 WS-CLEAN-PATH        PIC X(512).
+       01 WS-CLEAN-LEN         PIC 9(4) COMP-5 VALUE 0.
+       01 WS-QUERY-STR         PIC X(512).
+       01 WS-SCAN              PIC 9(4) COMP-5 VALUE 0.
+       01 WS-PARAM-NAME        PIC X(64).
+       01 WS-PARAM-VAL         PIC X(64).
 
        LINKAGE SECTION.
        01 LS-REQUEST-PATH      PIC X(512).
@@ -15,23 +22,61 @@
           05 LS-RESOURCE-COUNT PIC 99.
           05 LS-RESOURCES OCCURS 20 TIMES.
              10 LS-RES-NAME    PIC X(64).
+             10 LS-RES-FIELD-COUNT PIC 99.
+             10 LS-RES-FIELDS OCCURS 20 TIMES.
+                15 LS-RES-FIELD-NAME PIC X(64).
+       01 LS-PAGE              PIC 999.
+       01 LS-PER-PAGE          PIC 999.
 
        PROCEDURE DIVISION USING
            LS-REQUEST-PATH LS-PATH-LEN
            LS-ROUTE-TYPE LS-ROUTE-RESOURCE
-           LS-RESOURCE-TABLE.
+           LS-RESOURCE-TABLE
+           LS-PAGE LS-PER-PAGE.
 
        MAIN-LOGIC.
            MOVE "NOTFOUND" TO LS-ROUTE-TYPE
            MOVE SPACES TO LS-ROUTE-RESOURCE
+           MOVE 1 TO LS-PAGE
+           MOVE 10 TO LS-PER-PAGE
 
-           IF FUNCTION TRIM(LS-REQUEST-PATH) = "/"
+      *> Split path from query string at '?'
+           MOVE SPACES TO WS-CLEAN-PATH
+           MOVE SPACES TO WS-QUERY-STR
+           MOVE 0 TO WS-QMARK-POS
+
+           PERFORM VARYING WS-SCAN FROM 1 BY 1
+               UNTIL WS-SCAN > LS-PATH-LEN
+               IF LS-REQUEST-PATH(WS-SCAN:1) = "?"
+                   MOVE WS-SCAN TO WS-QMARK-POS
+                   EXIT PERFORM
+               END-IF
+           END-PERFORM
+
+           IF WS-QMARK-POS > 0
+               MOVE LS-REQUEST-PATH(1:WS-QMARK-POS - 1)
+                   TO WS-CLEAN-PATH
+               COMPUTE WS-CLEAN-LEN = WS-QMARK-POS - 1
+               IF LS-PATH-LEN > WS-QMARK-POS
+                   MOVE LS-REQUEST-PATH(
+                       WS-QMARK-POS + 1:
+                       LS-PATH-LEN - WS-QMARK-POS)
+                       TO WS-QUERY-STR
+               END-IF
+               PERFORM PARSE-QUERY-PARAMS
+           ELSE
+               MOVE LS-REQUEST-PATH TO WS-CLEAN-PATH
+               MOVE LS-PATH-LEN TO WS-CLEAN-LEN
+           END-IF
+
+      *> Match route
+           IF FUNCTION TRIM(WS-CLEAN-PATH) = "/"
                MOVE "HOME" TO LS-ROUTE-TYPE
            ELSE
-               IF LS-PATH-LEN > 6
-                   IF LS-REQUEST-PATH(1:6) = "/list/"
-                       MOVE LS-REQUEST-PATH(
-                           7:LS-PATH-LEN - 6)
+               IF WS-CLEAN-LEN > 6
+                   IF WS-CLEAN-PATH(1:6) = "/list/"
+                       MOVE WS-CLEAN-PATH(
+                           7:WS-CLEAN-LEN - 6)
                            TO LS-ROUTE-RESOURCE
                        PERFORM VARYING WS-IDX FROM 1 BY 1
                            UNTIL WS-IDX > LS-RESOURCE-COUNT
@@ -46,3 +91,74 @@
            END-IF
 
            GOBACK.
+
+      *> Parse page= and perPage= from query string
+       PARSE-QUERY-PARAMS.
+      *> Use simple scan: look for "page=" and "perPage="
+           PERFORM EXTRACT-PAGE-PARAM
+           PERFORM EXTRACT-PERPAGE-PARAM
+           .
+
+       EXTRACT-PAGE-PARAM.
+           MOVE 0 TO WS-SCAN
+           INSPECT WS-QUERY-STR TALLYING WS-SCAN
+               FOR CHARACTERS BEFORE INITIAL "page="
+           IF WS-SCAN < FUNCTION LENGTH(
+               FUNCTION TRIM(WS-QUERY-STR TRAILING))
+      *> Check it's not "perPage=" by verifying char before
+               IF WS-SCAN = 0 OR
+                   WS-QUERY-STR(WS-SCAN:1) = "&"
+                   COMPUTE WS-SCAN = WS-SCAN + 6
+                   MOVE SPACES TO WS-PARAM-VAL
+                   PERFORM VARYING WS-IDX FROM 1 BY 1
+                       UNTIL WS-IDX > 5
+                       IF WS-QUERY-STR(WS-SCAN:1) = "&"
+                           OR WS-QUERY-STR(WS-SCAN:1) = SPACE
+                           EXIT PERFORM
+                       END-IF
+                       MOVE WS-QUERY-STR(WS-SCAN:1)
+                           TO WS-PARAM-VAL(WS-IDX:1)
+                       ADD 1 TO WS-SCAN
+                   END-PERFORM
+                   IF WS-PARAM-VAL NOT = SPACES
+                       COMPUTE LS-PAGE =
+                           FUNCTION NUMVAL(
+                               FUNCTION TRIM(
+                                   WS-PARAM-VAL TRAILING))
+                       IF LS-PAGE < 1
+                           MOVE 1 TO LS-PAGE
+                       END-IF
+                   END-IF
+               END-IF
+           END-IF
+           .
+
+       EXTRACT-PERPAGE-PARAM.
+           MOVE 0 TO WS-SCAN
+           INSPECT WS-QUERY-STR TALLYING WS-SCAN
+               FOR CHARACTERS BEFORE INITIAL "perPage="
+           IF WS-SCAN < FUNCTION LENGTH(
+               FUNCTION TRIM(WS-QUERY-STR TRAILING))
+               COMPUTE WS-SCAN = WS-SCAN + 9
+               MOVE SPACES TO WS-PARAM-VAL
+               PERFORM VARYING WS-IDX FROM 1 BY 1
+                   UNTIL WS-IDX > 5
+                   IF WS-QUERY-STR(WS-SCAN:1) = "&"
+                       OR WS-QUERY-STR(WS-SCAN:1) = SPACE
+                       EXIT PERFORM
+                   END-IF
+                   MOVE WS-QUERY-STR(WS-SCAN:1)
+                       TO WS-PARAM-VAL(WS-IDX:1)
+                   ADD 1 TO WS-SCAN
+               END-PERFORM
+               IF WS-PARAM-VAL NOT = SPACES
+                   COMPUTE LS-PER-PAGE =
+                       FUNCTION NUMVAL(
+                           FUNCTION TRIM(
+                               WS-PARAM-VAL TRAILING))
+                   IF LS-PER-PAGE < 1
+                       MOVE 10 TO LS-PER-PAGE
+                   END-IF
+               END-IF
+           END-IF
+           .

@@ -11,56 +11,37 @@ app.use(express.json());
 
 // --- In-memory data with seed ---
 const db = {
-  authors: [
-    { id: 1, name: "Alice Martin", email: "alice@example.com" },
-    { id: 2, name: "Bob Jones", email: "bob@example.com" },
-  ],
-  tags: [
-    { id: 1, name: "javascript" },
-    { id: 2, name: "cobol" },
-    { id: 3, name: "webdev" },
-  ],
-  posts: [
-    {
-      id: 1,
-      title: "Hello World",
-      body: "First post content.",
-      authorId: 1,
-      tagIds: [1, 3],
-      createdAt: "2025-01-15T10:00:00Z",
-    },
-    {
-      id: 2,
-      title: "COBOL Lives",
-      body: "COBOL is still relevant.",
-      authorId: 2,
-      tagIds: [2],
-      createdAt: "2025-02-20T14:30:00Z",
-    },
-  ],
-  comments: [
-    {
-      id: 1,
-      postId: 1,
-      body: "Great post!",
-      authorName: "Charlie",
-      createdAt: "2025-01-16T08:00:00Z",
-    },
-    {
-      id: 2,
-      postId: 2,
-      body: "Absolutely agree.",
-      authorName: "Dana",
-      createdAt: "2025-02-21T09:15:00Z",
-    },
-  ],
+  authors: Array.from({ length: 25 }, (_, i) => ({
+    id: i + 1,
+    name: `Author ${i + 1}`,
+    email: `author${i + 1}@example.com`,
+  })),
+  tags: Array.from({ length: 15 }, (_, i) => ({
+    id: i + 1,
+    name: `tag-${i + 1}`,
+  })),
+  posts: Array.from({ length: 30 }, (_, i) => ({
+    id: i + 1,
+    title: `Post ${i + 1}`,
+    body: `Content of post ${i + 1}.`,
+    authorId: (i % 25) + 1,
+    tagIds: [(i % 15) + 1],
+    createdAt: new Date(2025, 0, i + 1).toISOString(),
+  })),
+  comments: Array.from({ length: 40 }, (_, i) => ({
+    id: i + 1,
+    postId: (i % 30) + 1,
+    body: `Comment ${i + 1}`,
+    authorName: `Commenter ${i + 1}`,
+    createdAt: new Date(2025, 1, i + 1).toISOString(),
+  })),
 };
 
 const counters = {
-  authors: 2,
-  tags: 3,
-  posts: 2,
-  comments: 2,
+  authors: 25,
+  tags: 15,
+  posts: 30,
+  comments: 40,
 };
 
 // --- Generic CRUD helper ---
@@ -71,6 +52,14 @@ function crud(resource, timestamped = false) {
     let items = db[resource];
     if (req.query.postId) {
       items = items.filter((i) => i.postId === Number(req.query.postId));
+    }
+    const total = items.length;
+    if (req.query.perPage) {
+      const perPage = Math.max(1, Number(req.query.perPage) || 10);
+      const page = Math.max(1, Number(req.query.page) || 1);
+      const start = (page - 1) * perPage;
+      items = items.slice(start, start + perPage);
+      res.set("X-Total-Count", String(total));
     }
     res.json(items);
   });

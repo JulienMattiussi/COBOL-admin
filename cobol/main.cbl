@@ -19,6 +19,9 @@
       *> Layout action
        01 WS-LAYOUT-ACTION     PIC X(5).
 
+      *> Resource lookup
+       01 WS-MATCHED-RES-IDX   PIC 99 VALUE 0.
+
        PROCEDURE DIVISION.
 
        MAIN-LOGIC.
@@ -150,6 +153,7 @@
                WS-REQUEST-PATH WS-PATH-LEN
                WS-ROUTE-TYPE WS-ROUTE-RESOURCE
                WS-RESOURCE-TABLE
+               WS-PAGE WS-PER-PAGE
            END-CALL
 
       *> Build page
@@ -166,8 +170,23 @@
                WHEN ROUTE-HOME
                    CALL "PAGE-HOME" USING HTML-BODY HTML-LEN
                WHEN ROUTE-LIST
+      *> Find resource index for field info
+                   PERFORM VARYING WS-MATCHED-RES-IDX
+                       FROM 1 BY 1
+                       UNTIL WS-MATCHED-RES-IDX >
+                           WS-RESOURCE-COUNT
+                       IF WS-RES-NAME(WS-MATCHED-RES-IDX)
+                           = WS-ROUTE-RESOURCE
+                           EXIT PERFORM
+                       END-IF
+                   END-PERFORM
                    CALL "PAGE-LIST" USING
-                       HTML-BODY HTML-LEN WS-ROUTE-RESOURCE
+                       HTML-BODY HTML-LEN
+                       WS-ROUTE-RESOURCE
+                       API-BASE-URL
+                       WS-PAGE WS-PER-PAGE WS-TOTAL-COUNT
+                       WS-RESOURCE-TABLE
+                       WS-MATCHED-RES-IDX
                WHEN ROUTE-NOT-FOUND
                    CALL "PAGE-404" USING HTML-BODY HTML-LEN
            END-EVALUATE
