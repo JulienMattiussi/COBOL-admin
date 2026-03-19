@@ -21,7 +21,7 @@
 - [ ] Clean up temp files after use — hardcoded `/tmp/` files; concurrent requests cause race conditions
 - [x] Validate API responses — handle 404/500 from the API instead of silently rendering empty pages
 - [x] Validate page/perPage range — prevent extreme values like `perPage=99999`
-- [ ] Handle form submit errors — show error message if PUT fails instead of silently redirecting
+- [x] Handle form submit errors — show error message if PUT fails instead of silently redirecting
 
 ## Low (Quality / Performance)
 

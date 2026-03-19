@@ -21,6 +21,9 @@
       *> Resource lookup
        01 WS-MATCHED-RES-IDX   PIC 99 VALUE 0.
 
+      *> Form submit status
+       01 WS-SUBMIT-STATUS     PIC 9 VALUE 0.
+
       *> Static file serving
        01 WS-STATIC-BODY       PIC X(32768).
        01 WS-STATIC-LEN        PIC 9(8) COMP-5 VALUE 0.
@@ -173,8 +176,42 @@
                    API-BASE-URL WS-ROUTE-RESOURCE
                    WS-ROUTE-ID
                    WS-REQUEST-BODY WS-BODY-LEN
+                   WS-SUBMIT-STATUS
                END-CALL
-               PERFORM SEND-REDIRECT
+               IF WS-SUBMIT-STATUS = 1
+                   PERFORM SEND-REDIRECT
+               ELSE
+      *> Show error — render edit page with error message
+                   MOVE LOW-VALUE TO WS-PAGE-CONTENT
+                   MOVE 1 TO WS-PAGE-LEN
+                   STRING
+                       "<h1>Error</h1>"
+                           DELIMITED BY SIZE
+                       "<p class='error'>Failed to save."
+                           DELIMITED BY SIZE
+                       " Please try again.</p>"
+                           DELIMITED BY SIZE
+                       "<p><a href='/edit/"
+                           DELIMITED BY SIZE
+                       WS-ROUTE-RESOURCE DELIMITED BY SPACE
+                       "/" DELIMITED BY SIZE
+                       WS-ROUTE-ID DELIMITED BY SPACE
+                       "'>Back to edit</a></p>"
+                           DELIMITED BY SIZE
+                       INTO WS-PAGE-CONTENT
+                           WITH POINTER WS-PAGE-LEN
+                   END-STRING
+                   SUBTRACT 1 FROM WS-PAGE-LEN
+                   MOVE LOW-VALUE TO HTML-BODY
+                   MOVE 1 TO HTML-LEN
+                   CALL "PAGE-LAYOUT" USING
+                       HTML-BODY HTML-LEN
+                       WS-RESOURCE-TABLE
+                       WS-PAGE-CONTENT WS-PAGE-LEN
+                   END-CALL
+                   SUBTRACT 1 FROM HTML-LEN
+                   PERFORM SEND-RESPONSE
+               END-IF
            ELSE
 
       *> Handle static files separately

@@ -21,12 +21,15 @@
        01 LS-RESOURCE-ID       PIC X(10).
        01 LS-FORM-BODY         PIC X(4096).
        01 LS-BODY-LEN          PIC 9(4) COMP-5.
+       01 LS-STATUS            PIC 9.
 
        PROCEDURE DIVISION USING
            LS-API-URL LS-RESOURCE-NAME LS-RESOURCE-ID
-           LS-FORM-BODY LS-BODY-LEN.
+           LS-FORM-BODY LS-BODY-LEN LS-STATUS.
 
        MAIN-LOGIC.
+           MOVE 1 TO LS-STATUS
+
       *> Write form body to file
            CALL "fopen" USING WS-BODY-FILE WS-FOPEN-MODE-W
                RETURNING WS-FILE-PTR
@@ -54,6 +57,7 @@
            IF WS-C-RESULT NOT = 0
                DISPLAY "Form to JSON conversion failed: "
                    WS-C-RESULT
+               MOVE 0 TO LS-STATUS
                GOBACK
            END-IF
 
@@ -78,6 +82,7 @@
 
            IF WS-C-RESULT NOT = 0
                DISPLAY "PUT failed: " WS-C-RESULT
+               MOVE 0 TO LS-STATUS
            END-IF
 
            GOBACK.
