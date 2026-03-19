@@ -133,6 +133,8 @@
       *> HANDLE-REQUEST: Read, route, build page, respond
       *>
        HANDLE-REQUEST.
+           CALL "cobol_cleanup_temp" END-CALL
+
            MOVE LOW-VALUE TO REQUEST-BUFFER
            MOVE LOW-VALUE TO RESPONSE-BUFFER
            MOVE 0 TO RESPONSE-LEN

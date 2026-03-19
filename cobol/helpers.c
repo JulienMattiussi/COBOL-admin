@@ -459,6 +459,25 @@ int cobol_form_to_json(const char *input_file,
 }
 
 /*
+ * Clean up all temp files used during request processing
+ */
+void cobol_cleanup_temp(void) {
+    const char *files[] = {
+        "/tmp/response.json",
+        "/tmp/showdata.tsv",
+        "/tmp/listresponse.json",
+        "/tmp/listdata.tsv",
+        "/tmp/headers.txt",
+        "/tmp/formbody.txt",
+        "/tmp/formjson.json",
+        NULL
+    };
+    for (int i = 0; files[i]; i++) {
+        remove(files[i]);
+    }
+}
+
+/*
  * Extract X-Total-Count from HTTP header file
  */
 int cobol_extract_total(const char *header_file, int *total) {
