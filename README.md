@@ -2,6 +2,8 @@
 
 A tool for generating admin from OpenApi schema, using COBOL. Open sourced and maintained by [marmelab](https://marmelab.com/).
 
+![preview](./preview.png)
+
 ## Features
 
 - Based on a technology that withstood the test of time: COBOL
