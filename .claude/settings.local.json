@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C /home/julien/Documents/COBOL-admin remote -v)",
+      "Bash(git -C /home/julien/Documents/COBOL-admin branch -vv)",
+      "Bash(git -C /home/julien/Documents/COBOL-admin status)"
+    ]
+  }
+}

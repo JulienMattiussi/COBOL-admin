@@ -1,0 +1,13 @@
+.git
+.gitignore
+.claude
+.dockerignore
+README.md
+preview.png
+docker-compose.yml
+Makefile
+fly.toml
+
+server/node_modules
+cobol/tests
+**/.DS_Store
