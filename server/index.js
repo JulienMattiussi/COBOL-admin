@@ -97,3 +97,10 @@ app.listen(PORT, () => {
   console.log(`API running at http://localhost:${PORT}`);
   console.log(`Swagger UI at http://localhost:${PORT}/docs`);
 });
+
+// Auto-reset: exit after 1h so the host restarts the container with fresh fixtures
+const RESET_INTERVAL_MS = 60 * 60 * 1000;
+setTimeout(() => {
+  console.log("Auto-reset: exiting to reload fixtures");
+  process.exit(0);
+}, RESET_INTERVAL_MS).unref();
